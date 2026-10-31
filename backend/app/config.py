@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://qash:qash@localhost:5432/qash"
-    database_url_test: str = "postgresql+psycopg://qash:qash@localhost:5432/qash_test"
+    database_url_test: str = "postgresql+psycopg://qash:qash@localhost:5433/qash_test"
     jwt_secreto: str = "cambiar-en-produccion"
     jwt_minutos: int = 30
     groq_api_key: str | None = None

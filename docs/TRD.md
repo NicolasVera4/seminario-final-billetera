@@ -75,6 +75,8 @@ Base: diagrama entidad-relación del TFG (Figura 5). Tablas: `usuarios`, `catego
 - `usuarios.bloqueado_hasta` — timestamp nullable.
 - `usuarios.activo` — bool, default true (baja de cuentas por el administrador).
 
+**[AJUSTE]** `usuarios.nombre` — string, obligatorio. El mockup de Crear cuenta (Figura 7) tiene un campo "Nombre" que los CA de HU-01 y el diagrama original no contemplaban. Se agrega la columna y se trata como campo obligatorio igual que correo y contraseña (HU-01 CA3: vacío → se señala). Nunca se envía al LLM (ver política de privacidad).
+
 **[AJUSTE]** Campos para cuotas (HU-06 CA3), para que la "cuota 2 de 6" no quede solo en el texto:
 - `movimientos.cuota_numero` — int nullable.
 - `movimientos.cuota_total` — int nullable.

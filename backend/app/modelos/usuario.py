@@ -11,6 +11,7 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
     correo: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     contrasena_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol: Mapped[RolUsuario] = mapped_column(
