@@ -35,10 +35,10 @@ Tests mínimos:
 - Frontend: `TarjetaMovimiento` con los dos estados de la Figura 9 (guardado / "2 datos para completar"), botón Guardar deshabilitado, editar y descartar, aviso de duplicado.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 4 — Historial (HU-07)
+## Fase 4 — Historial (HU-07) ✅
 - Tests: orden descendente, cada filtro por separado y combinados, búsqueda por texto y por monto, estado vacío, paginación, aislamiento por usuario.
 - Frontend: Figura 12.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 5 — Dashboard y alertas (HU-08, HU-09)
 - Tests unitarios de `analisis.py` con datos sintéticos: totales, evolución, distribución, regla del 30 %, sin alerta con menos de 3 meses, contenido de la alerta, recálculo tras guardar.
