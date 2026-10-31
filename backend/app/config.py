@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     jwt_secreto: str = "cambiar-en-produccion"
     jwt_minutos: int = 30
     groq_api_key: str | None = None
-    groq_modelo: str = "llama-3.3-70b-versatile"
+    groq_modelo: str = "openai/gpt-oss-120b"
     ollama_url: str = "http://localhost:11434"
     ollama_modelo_embeddings: str = "nomic-embed-text"
     chroma_url: str = "http://localhost:8001"

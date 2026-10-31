@@ -53,7 +53,9 @@ def test_conjunto_oro_primeras_10_entradas_contra_groq_real():
 
         if "faltantes" in esperado:
             total["faltantes"] += 1
-            aciertos["faltantes"] += set(resultado.faltantes) == set(esperado["faltantes"])
+            # Subconjunto, no igualdad: al sistema le importa que lo obligatorio
+            # (ej. "monto") este marcado, no que el modelo no agregue mas campos.
+            aciertos["faltantes"] += set(esperado["faltantes"]) <= set(resultado.faltantes)
 
     print("\nResultados conjunto de oro (primeras 10 entradas):")
     for campo in CAMPOS:

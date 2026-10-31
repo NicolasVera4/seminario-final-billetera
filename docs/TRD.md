@@ -11,7 +11,7 @@ Decisiones técnicas para implementar el PRD. Todo lo que figura acá está alin
 | Base relacional | PostgreSQL 16 |
 | Base vectorial | ChromaDB (servidor en contenedor; `EphemeralClient` en tests) |
 | Embeddings | Ollama con `nomic-embed-text` |
-| LLM | Groq, modelo `llama-3.3-70b-versatile` (modo JSON) |
+| LLM | Groq, modelo `openai/gpt-oss-120b` (modo JSON) **[AJUSTE]** — el TFG especificaba `llama-3.3-70b-versatile`, pero Groq lo discontinuó (confirmado contra la API real en la Fase 4, devolvía 404 `model_not_found`); se eligió el modelo más grande disponible hoy en Groq como reemplazo más cercano en capacidad |
 | Voz | faster-whisper, modelo `small`, idioma `es`, CPU `int8` |
 | OCR | Tesseract (`spa`) + pdf2image |
 | PDF con texto | **[AJUSTE]** pdfplumber para leer PDFs digitales (resúmenes de tarjeta, facturas por mail) sin OCR. HU-05 CA2 ya implica que solo los escaneados pasan por OCR |
@@ -217,7 +217,7 @@ Fixtures que hay que generar en el repo: ticket de supermercado (imagen), factur
 
 ```
 DATABASE_URL, DATABASE_URL_TEST, JWT_SECRETO, JWT_MINUTOS=30,
-GROQ_API_KEY, GROQ_MODELO=llama-3.3-70b-versatile,
+GROQ_API_KEY, GROQ_MODELO=openai/gpt-oss-120b,
 OLLAMA_URL, OLLAMA_MODELO_EMBEDDINGS=nomic-embed-text,
 CHROMA_URL, WHISPER_MODELO=small, ARCHIVOS_DIR, CORS_ORIGENES
 ```
