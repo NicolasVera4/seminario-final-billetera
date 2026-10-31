@@ -1,41 +1,30 @@
 from datetime import timedelta
 
+from tests.ayudantes import loguear, registrar
+
 MENSAJE_ERROR_LOGIN = "El correo o la contraseña no son correctos."
 
 
-def _registrar(cliente, correo="luciano.vera@mail.com", contrasena="contrasena123"):
-    cliente.post(
-        "/api/auth/registro",
-        json={"nombre": "Luciano Vera", "correo": correo, "contrasena": contrasena},
-    )
-
-
 def test_hu02_ca1_mensaje_unico_correo_inexistente(cliente):
-    respuesta = cliente.post(
-        "/api/auth/login", json={"correo": "no-existe@mail.com", "contrasena": "cualquiera123"}
-    )
+    respuesta = loguear(cliente, correo="no-existe@mail.com", contrasena="cualquiera123")
 
     assert respuesta.status_code == 401
     assert respuesta.json()["detail"] == MENSAJE_ERROR_LOGIN
 
 
 def test_hu02_ca1_mensaje_unico_contrasena_incorrecta(cliente):
-    _registrar(cliente)
+    registrar(cliente)
 
-    respuesta = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "incorrecta123"}
-    )
+    respuesta = loguear(cliente, contrasena="incorrecta123")
 
     assert respuesta.status_code == 401
     assert respuesta.json()["detail"] == MENSAJE_ERROR_LOGIN
 
 
 def test_hu02_ca2_datos_correctos_devuelve_token(cliente):
-    _registrar(cliente)
+    registrar(cliente)
 
-    respuesta = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "contrasena123"}
-    )
+    respuesta = loguear(cliente)
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
@@ -44,51 +33,41 @@ def test_hu02_ca2_datos_correctos_devuelve_token(cliente):
 
 
 def test_bloqueo_tras_5_fallos_consecutivos(cliente):
-    _registrar(cliente)
+    registrar(cliente)
 
     for _ in range(5):
-        respuesta = cliente.post(
-            "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "mala"}
-        )
+        respuesta = loguear(cliente, contrasena="mala")
 
     assert respuesta.status_code in (401, 423)
 
-    respuesta_bloqueada = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "contrasena123"}
-    )
+    respuesta_bloqueada = loguear(cliente)
     assert respuesta_bloqueada.status_code == 423
 
 
 def test_desbloqueo_a_los_15_minutos(cliente, reloj):
-    _registrar(cliente)
+    registrar(cliente)
 
     for _ in range(5):
-        cliente.post("/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "mala"})
+        loguear(cliente, contrasena="mala")
 
     reloj.avanzar(timedelta(minutes=15, seconds=1))
 
-    respuesta = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "contrasena123"}
-    )
+    respuesta = loguear(cliente)
 
     assert respuesta.status_code == 200
 
 
 def test_reset_del_contador_tras_login_exitoso(cliente, reloj):
-    _registrar(cliente)
+    registrar(cliente)
 
     for _ in range(4):
-        cliente.post("/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "mala"})
+        loguear(cliente, contrasena="mala")
 
-    exitoso = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "contrasena123"}
-    )
+    exitoso = loguear(cliente)
     assert exitoso.status_code == 200
 
     for _ in range(4):
-        cliente.post("/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "mala"})
+        loguear(cliente, contrasena="mala")
 
-    aun_no_bloqueada = cliente.post(
-        "/api/auth/login", json={"correo": "luciano.vera@mail.com", "contrasena": "contrasena123"}
-    )
+    aun_no_bloqueada = loguear(cliente)
     assert aun_no_bloqueada.status_code == 200

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.dependencias import usuario_actual
 from app.db import obtener_sesion
+from app.dependencias import usuario_actual
 from app.esquemas.auth import LoginEntrada, RegistroEntrada, TokenSalida, UsuarioSalida
 from app.modelos.usuario import Usuario
 from app.servicios import auth as servicio_auth
