@@ -17,7 +17,17 @@ function renderizar() {
 
 beforeEach(() => {
   guardarToken('token-valido')
-  servidor.use(http.get('/api/chat/conversaciones', () => HttpResponse.json([])))
+  servidor.use(
+    http.get('/api/chat/conversaciones', () => HttpResponse.json([])),
+    http.get('/api/catalogos', () =>
+      HttpResponse.json({
+        categorias: [{ id: 1, nombre: 'Supermercado' }],
+        medios_pago: [{ id: 2, nombre: 'Débito' }],
+        origenes: [{ id: 1, nombre: 'Texto' }],
+      }),
+    ),
+    http.post('/api/movimientos/validar', () => HttpResponse.json({ errores: [], advertencias: [] })),
+  )
 })
 
 describe('Chat', () => {

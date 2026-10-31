@@ -1,3 +1,4 @@
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -18,11 +19,21 @@ def validar_campos(
     categorias_validas: set[int],
     medios_pago_validos: set[int],
 ) -> list[str]:
-    raise NotImplementedError
+    errores = []
+    if monto is None or monto <= 0:
+        errores.append("MONTO_INVALIDO")
+    if fecha > hoy:
+        errores.append("FECHA_FUTURA")
+    if categoria_id is None or categoria_id not in categorias_validas:
+        errores.append("CATEGORIA_INVALIDA")
+    if medio_pago_id is None or medio_pago_id not in medios_pago_validos:
+        errores.append("MEDIO_PAGO_FALTANTE")
+    return errores
 
 
 def normalizar_descripcion(texto: str) -> str:
-    raise NotImplementedError
+    sin_tildes = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    return " ".join(sin_tildes.lower().split())
 
 
 def es_posible_duplicado(
@@ -31,7 +42,11 @@ def es_posible_duplicado(
     descripcion: str,
     existentes: list[tuple[date, Decimal, str]],
 ) -> bool:
-    raise NotImplementedError
+    descripcion_normalizada = normalizar_descripcion(descripcion)
+    return any(
+        f == fecha and m == monto and normalizar_descripcion(d) == descripcion_normalizada
+        for f, m, d in existentes
+    )
 
 
 def validar(
@@ -45,4 +60,10 @@ def validar(
     medios_pago_validos: set[int],
     existentes: list[tuple[date, Decimal, str]],
 ) -> ResultadoValidacion:
-    raise NotImplementedError
+    errores = validar_campos(
+        monto, fecha, categoria_id, medio_pago_id, hoy, categorias_validas, medios_pago_validos
+    )
+    advertencias = []
+    if monto is not None and es_posible_duplicado(fecha, monto, descripcion, existentes):
+        advertencias.append("POSIBLE_DUPLICADO")
+    return ResultadoValidacion(errores=errores, advertencias=advertencias)

@@ -1,10 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
 import type { Borrador, Conversacion, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
-
-function formatearMonto(monto: number) {
-  return `$${monto}`
-}
 
 export default function Chat() {
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
@@ -54,6 +51,13 @@ export default function Chat() {
     }
   }
 
+  function descartarBorrador(mensajeId: number) {
+    setBorradoresPorMensaje((previos) => {
+      const { [mensajeId]: _descartado, ...resto } = previos
+      return resto
+    })
+  }
+
   return (
     <div>
       <aside>
@@ -70,7 +74,10 @@ export default function Chat() {
             <li key={mensaje.id}>
               <p>{mensaje.contenido}</p>
               {borradoresPorMensaje[mensaje.id] && (
-                <ResumenBorrador borrador={borradoresPorMensaje[mensaje.id]} />
+                <TarjetaMovimiento
+                  borrador={borradoresPorMensaje[mensaje.id]}
+                  onDescartado={() => descartarBorrador(mensaje.id)}
+                />
               )}
             </li>
           ))}
@@ -87,20 +94,5 @@ export default function Chat() {
         </form>
       </main>
     </div>
-  )
-}
-
-function ResumenBorrador({ borrador }: { borrador: Borrador }) {
-  return (
-    <dl>
-      <dt>Monto</dt>
-      <dd>{formatearMonto(borrador.monto)}</dd>
-      <dt>Fecha</dt>
-      <dd>{borrador.fecha}</dd>
-      <dt>Tipo</dt>
-      <dd>{borrador.tipo}</dd>
-      <dt>Descripción</dt>
-      <dd>{borrador.descripcion}</dd>
-    </dl>
   )
 }
