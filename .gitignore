@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Datos y volúmenes
+datos/
+*.sqlite3
+backend/alembic/versions/__pycache__/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+.claude/
+
+# Logs
+*.log
