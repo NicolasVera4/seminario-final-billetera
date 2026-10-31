@@ -22,6 +22,37 @@ function mensajeCategoria(categoriaSugerida: string | null) {
     : 'El mensaje no indica la categoría. Elegí una.'
 }
 
+interface SelectCatalogoProps {
+  id: string
+  etiqueta: string
+  valor: number | null
+  opciones: { id: number; nombre: string }[]
+  placeholder: string
+  mensajeError: string
+  onCambiar: (valor: number | null) => void
+}
+
+function SelectCatalogo({ id, etiqueta, valor, opciones, placeholder, mensajeError, onCambiar }: SelectCatalogoProps) {
+  return (
+    <>
+      <label htmlFor={id}>{etiqueta}</label>
+      <select
+        id={id}
+        value={valor ?? ''}
+        onChange={(evento) => onCambiar(evento.target.value ? Number(evento.target.value) : null)}
+      >
+        <option value="">{placeholder}</option>
+        {opciones.map((opcion) => (
+          <option key={opcion.id} value={opcion.id}>
+            {opcion.nombre}
+          </option>
+        ))}
+      </select>
+      <p>{mensajeError}</p>
+    </>
+  )
+}
+
 export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }: TarjetaMovimientoProps) {
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null)
   const [monto, setMonto] = useState(borrador.monto)
@@ -138,43 +169,29 @@ export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }
       {categoriaId != null && !errores.includes('CATEGORIA_INVALIDA') ? (
         <p>Categoría: {nombreCategoria}</p>
       ) : (
-        <>
-          <label htmlFor="categoria">Categoría</label>
-          <select
-            id="categoria"
-            value={categoriaId ?? ''}
-            onChange={(evento) => setCategoriaId(evento.target.value ? Number(evento.target.value) : null)}
-          >
-            <option value="">Elegí una categoría</option>
-            {catalogos?.categorias.map((categoria) => (
-              <option key={categoria.id} value={categoria.id}>
-                {categoria.nombre}
-              </option>
-            ))}
-          </select>
-          <p>{mensajeCategoria(borrador.categoria_sugerida)}</p>
-        </>
+        <SelectCatalogo
+          id="categoria"
+          etiqueta="Categoría"
+          valor={categoriaId}
+          opciones={catalogos?.categorias ?? []}
+          placeholder="Elegí una categoría"
+          mensajeError={mensajeCategoria(borrador.categoria_sugerida)}
+          onCambiar={setCategoriaId}
+        />
       )}
 
       {medioPagoId != null && !errores.includes('MEDIO_PAGO_FALTANTE') ? (
         <p>Medio de pago: {nombreMedioPago}</p>
       ) : (
-        <>
-          <label htmlFor="medio_pago">Medio de pago</label>
-          <select
-            id="medio_pago"
-            value={medioPagoId ?? ''}
-            onChange={(evento) => setMedioPagoId(evento.target.value ? Number(evento.target.value) : null)}
-          >
-            <option value="">Elegí un medio de pago</option>
-            {catalogos?.medios_pago.map((medio) => (
-              <option key={medio.id} value={medio.id}>
-                {medio.nombre}
-              </option>
-            ))}
-          </select>
-          <p>El mensaje no indica cómo pagaste.</p>
-        </>
+        <SelectCatalogo
+          id="medio_pago"
+          etiqueta="Medio de pago"
+          valor={medioPagoId}
+          opciones={catalogos?.medios_pago ?? []}
+          placeholder="Elegí un medio de pago"
+          mensajeError="El mensaje no indica cómo pagaste."
+          onCambiar={setMedioPagoId}
+        />
       )}
 
       {advertencias.includes('POSIBLE_DUPLICADO') && <p>Aviso: posible duplicado. Revisá antes de guardar.</p>}
