@@ -30,10 +30,10 @@ Tests mínimos:
 - Integración: primeras 10 entradas de `conjunto_oro.yaml` contra Groq real.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 3 — Validación y confirmación (HU-04)
+## Fase 3 — Validación y confirmación (HU-04) ✅
 - Tests unitarios de `validacion.py` para cada regla; tests de API de CA1–CA5; el backend revalida al guardar aunque el cliente mande datos inválidos.
 - Frontend: `TarjetaMovimiento` con los dos estados de la Figura 9 (guardado / "2 datos para completar"), botón Guardar deshabilitado, editar y descartar, aviso de duplicado.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 4 — Historial (HU-07)
 - Tests: orden descendente, cada filtro por separado y combinados, búsqueda por texto y por monto, estado vacío, paginación, aislamiento por usuario.
