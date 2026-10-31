@@ -3,15 +3,15 @@ from datetime import UTC, datetime, timedelta
 from jose import jwt
 
 from app.config import settings
-from tests.ayudantes import registrar_y_loguear
+from tests.ayudantes import auth, registrar_y_loguear
 
 
 def test_hu02_ca3_aislamiento_entre_dos_usuarios(cliente):
     token_a = registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
     token_b = registrar_y_loguear(cliente, nombre="Usuario B", correo="b@mail.com")
 
-    respuesta_a = cliente.get("/api/auth/yo", headers={"Authorization": f"Bearer {token_a}"})
-    respuesta_b = cliente.get("/api/auth/yo", headers={"Authorization": f"Bearer {token_b}"})
+    respuesta_a = cliente.get("/api/auth/yo", headers=auth(token_a))
+    respuesta_b = cliente.get("/api/auth/yo", headers=auth(token_b))
 
     assert respuesta_a.json()["correo"] == "a@mail.com"
     assert respuesta_b.json()["correo"] == "b@mail.com"
@@ -25,7 +25,7 @@ def test_hu02_ca4_token_vencido_devuelve_401(cliente):
         algorithm="HS256",
     )
 
-    respuesta = cliente.get("/api/auth/yo", headers={"Authorization": f"Bearer {token_vencido}"})
+    respuesta = cliente.get("/api/auth/yo", headers=auth(token_vencido))
 
     assert respuesta.status_code == 401
 
@@ -33,7 +33,7 @@ def test_hu02_ca4_token_vencido_devuelve_401(cliente):
 def test_header_x_token_renovado_en_respuesta_autenticada(cliente):
     token = registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
 
-    respuesta = cliente.get("/api/auth/yo", headers={"Authorization": f"Bearer {token}"})
+    respuesta = cliente.get("/api/auth/yo", headers=auth(token))
 
     assert "X-Token-Renovado" in respuesta.headers
     nuevo_token = respuesta.headers["X-Token-Renovado"]

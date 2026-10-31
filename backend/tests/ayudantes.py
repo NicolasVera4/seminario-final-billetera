@@ -18,3 +18,7 @@ def loguear(cliente, correo=CORREO_DEFECTO, contrasena=CONTRASENA_DEFECTO):
 def registrar_y_loguear(cliente, nombre=NOMBRE_DEFECTO, correo=CORREO_DEFECTO, contrasena=CONTRASENA_DEFECTO):
     registrar(cliente, nombre, correo, contrasena)
     return loguear(cliente, correo, contrasena).json()["access_token"]
+
+
+def auth(token):
+    return {"Authorization": f"Bearer {token}"}

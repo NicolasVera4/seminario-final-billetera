@@ -2,13 +2,22 @@ from datetime import date
 from decimal import Decimal
 
 from app.esquemas.movimientos import Interpretacion, InterpretacionMovimiento
+from app.modelos.conversacion import Conversacion
 from app.modelos.enums import TipoMovimiento
+from app.modelos.mensaje import Mensaje
 from app.proveedores.llm import ErrorInterpretacion
-from tests.ayudantes import CORREO_DEFECTO, NOMBRE_DEFECTO, registrar_y_loguear
+from tests.ayudantes import CORREO_DEFECTO, NOMBRE_DEFECTO, auth, registrar_y_loguear
 
 
-def _auth(token):
-    return {"Authorization": f"Bearer {token}"}
+def _interpretacion_consulta():
+    return Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
+
+
+def _enviar(cliente, token, texto, conversacion_id=None):
+    cuerpo = {"texto": texto}
+    if conversacion_id is not None:
+        cuerpo["conversacion_id"] = conversacion_id
+    return cliente.post("/api/chat/mensajes", json=cuerpo, headers=auth(token))
 
 
 def test_hu03_ca1_identifica_los_campos_y_los_muestra_para_confirmar(cliente, proveedor_llm):
@@ -26,11 +35,7 @@ def test_hu03_ca1_identifica_los_campos_y_los_muestra_para_confirmar(cliente, pr
         faltantes=[],
     )
 
-    respuesta = cliente.post(
-        "/api/chat/mensajes",
-        json={"texto": "gasté 15000 en el súper con débito"},
-        headers=_auth(token),
-    )
+    respuesta = _enviar(cliente, token, "gasté 15000 en el súper con débito")
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
@@ -60,9 +65,7 @@ def test_hu03_ca2_mensaje_sin_fecha_toma_la_fecha_del_dia(cliente, proveedor_llm
         faltantes=[],
     )
 
-    respuesta = cliente.post(
-        "/api/chat/mensajes", json={"texto": "pagué un café con efectivo"}, headers=_auth(token)
-    )
+    respuesta = _enviar(cliente, token, "pagué un café con efectivo")
 
     assert respuesta.status_code == 200
     assert respuesta.json()["borrador"]["fecha"] == reloj.ahora().date().isoformat()
@@ -83,7 +86,7 @@ def test_hu03_ca3_mensaje_sin_monto_pide_el_monto_y_no_genera_borrador(cliente, 
         faltantes=["monto"],
     )
 
-    respuesta = cliente.post("/api/chat/mensajes", json={"texto": "compré cosas"}, headers=_auth(token))
+    respuesta = _enviar(cliente, token, "compré cosas")
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
@@ -93,12 +96,10 @@ def test_hu03_ca3_mensaje_sin_monto_pide_el_monto_y_no_genera_borrador(cliente, 
 
 def test_hu03_ca4_mensaje_que_no_describe_un_movimiento_responde_como_consulta(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
     proveedor_llm.respuesta_responder = "No tenés movimientos registrados todavía."
 
-    respuesta = cliente.post(
-        "/api/chat/mensajes", json={"texto": "¿cuánto gasté este mes?"}, headers=_auth(token)
-    )
+    respuesta = _enviar(cliente, token, "¿cuánto gasté este mes?")
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
@@ -108,9 +109,9 @@ def test_hu03_ca4_mensaje_que_no_describe_un_movimiento_responde_como_consulta(c
 
 def test_prompt_no_incluye_nombre_ni_correo(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
 
-    cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token))
+    _enviar(cliente, token, "hola")
 
     assert len(proveedor_llm.llamadas_clasificar) == 1
     texto_enviado = proveedor_llm.llamadas_clasificar[0]["texto"]
@@ -122,7 +123,7 @@ def test_json_invalido_responde_con_mensaje_amable(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
     proveedor_llm.respuesta_clasificar = ErrorInterpretacion()
 
-    respuesta = cliente.post("/api/chat/mensajes", json={"texto": "gasté 1000"}, headers=_auth(token))
+    respuesta = _enviar(cliente, token, "gasté 1000")
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
@@ -131,13 +132,10 @@ def test_json_invalido_responde_con_mensaje_amable(cliente, proveedor_llm):
 
 
 def test_persistencia_de_conversacion_y_mensajes(cliente, proveedor_llm, sesion_bd):
-    from app.modelos.conversacion import Conversacion
-    from app.modelos.mensaje import Mensaje
-
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
 
-    respuesta = cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token))
+    respuesta = _enviar(cliente, token, "hola")
     conversacion_id = respuesta.json()["conversacion_id"]
 
     conversacion = sesion_bd.get(Conversacion, conversacion_id)
@@ -149,42 +147,34 @@ def test_persistencia_de_conversacion_y_mensajes(cliente, proveedor_llm, sesion_
 
 def test_reutiliza_la_conversacion_si_se_pasa_conversacion_id(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
 
-    primera = cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token))
+    primera = _enviar(cliente, token, "hola")
     conversacion_id = primera.json()["conversacion_id"]
 
-    segunda = cliente.post(
-        "/api/chat/mensajes",
-        json={"texto": "otra pregunta", "conversacion_id": conversacion_id},
-        headers=_auth(token),
-    )
+    segunda = _enviar(cliente, token, "otra pregunta", conversacion_id=conversacion_id)
 
     assert segunda.json()["conversacion_id"] == conversacion_id
 
 
 def test_aislamiento_no_se_puede_usar_conversacion_de_otro_usuario(cliente, proveedor_llm):
     token_a = registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
-    respuesta = cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token_a))
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
+    respuesta = _enviar(cliente, token_a, "hola")
     conversacion_id = respuesta.json()["conversacion_id"]
 
     token_b = registrar_y_loguear(cliente, nombre="Usuario B", correo="b@mail.com")
-    intento = cliente.post(
-        "/api/chat/mensajes",
-        json={"texto": "hola", "conversacion_id": conversacion_id},
-        headers=_auth(token_b),
-    )
+    intento = _enviar(cliente, token_b, "hola", conversacion_id=conversacion_id)
 
     assert intento.status_code == 404
 
 
 def test_listar_conversaciones_devuelve_las_del_usuario(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
-    cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token))
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
+    _enviar(cliente, token, "hola")
 
-    respuesta = cliente.get("/api/chat/conversaciones", headers=_auth(token))
+    respuesta = cliente.get("/api/chat/conversaciones", headers=auth(token))
 
     assert respuesta.status_code == 200
     assert len(respuesta.json()) == 1
@@ -192,11 +182,11 @@ def test_listar_conversaciones_devuelve_las_del_usuario(cliente, proveedor_llm):
 
 def test_obtener_conversacion_devuelve_sus_mensajes_en_orden(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
-    proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
-    respuesta = cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=_auth(token))
+    proveedor_llm.respuesta_clasificar = _interpretacion_consulta()
+    respuesta = _enviar(cliente, token, "hola")
     conversacion_id = respuesta.json()["conversacion_id"]
 
-    detalle = cliente.get(f"/api/chat/conversaciones/{conversacion_id}", headers=_auth(token))
+    detalle = cliente.get(f"/api/chat/conversaciones/{conversacion_id}", headers=auth(token))
 
     assert detalle.status_code == 200
     mensajes = detalle.json()
@@ -208,6 +198,6 @@ def test_obtener_conversacion_devuelve_sus_mensajes_en_orden(cliente, proveedor_
 def test_obtener_conversacion_inexistente_devuelve_404(cliente):
     token = registrar_y_loguear(cliente)
 
-    respuesta = cliente.get("/api/chat/conversaciones/99999", headers=_auth(token))
+    respuesta = cliente.get("/api/chat/conversaciones/99999", headers=auth(token))
 
     assert respuesta.status_code == 404

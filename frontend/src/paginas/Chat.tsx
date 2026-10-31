@@ -14,11 +14,13 @@ export default function Chat() {
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  useEffect(() => {
+  function actualizarConversaciones() {
     listarConversaciones()
       .then(setConversaciones)
       .catch(() => {})
-  }, [])
+  }
+
+  useEffect(actualizarConversaciones, [])
 
   async function manejarEnvio(evento: FormEvent) {
     evento.preventDefault()
@@ -46,9 +48,7 @@ export default function Chat() {
         const borrador = resultado.borrador
         setBorradoresPorMensaje((previos) => ({ ...previos, [resultado.mensaje.id]: borrador }))
       }
-      listarConversaciones()
-        .then(setConversaciones)
-        .catch(() => {})
+      actualizarConversaciones()
     } finally {
       setEnviando(false)
     }
