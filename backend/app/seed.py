@@ -30,15 +30,18 @@ ORIGENES = [
 ]
 
 
-def cargar_catalogos() -> None:
-    sesion = SesionLocal()
+def cargar_catalogos(sesion=None) -> None:
+    sesion_propia = sesion is None
+    if sesion_propia:
+        sesion = SesionLocal()
     try:
         _cargar_si_falta(sesion, Categoria, CATEGORIAS)
         _cargar_si_falta(sesion, MedioPago, MEDIOS_PAGO)
         _cargar_si_falta(sesion, Origen, ORIGENES)
         sesion.commit()
     finally:
-        sesion.close()
+        if sesion_propia:
+            sesion.close()
 
 
 def _cargar_si_falta(sesion, modelo, nombres: list[str]) -> None:

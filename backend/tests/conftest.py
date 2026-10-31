@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -6,11 +8,21 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import obtener_sesion
 from app.main import app
+from app.proveedores.llm import obtener_proveedor_llm
+from app.seed import cargar_catalogos
 from app.servicios.reloj import obtener_reloj
-from tests.dobles import RelojFijo
-from datetime import UTC, datetime
+from tests.dobles import FakeLLM, RelojFijo
 
 engine_test = create_engine(settings.database_url_test)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _catalogos_seedeados():
+    sesion = Session(bind=engine_test)
+    try:
+        cargar_catalogos(sesion)
+    finally:
+        sesion.close()
 
 
 @pytest.fixture
@@ -30,9 +42,15 @@ def reloj():
 
 
 @pytest.fixture
-def cliente(sesion_bd, reloj):
+def proveedor_llm():
+    return FakeLLM()
+
+
+@pytest.fixture
+def cliente(sesion_bd, reloj, proveedor_llm):
     app.dependency_overrides[obtener_sesion] = lambda: sesion_bd
     app.dependency_overrides[obtener_reloj] = lambda: reloj
+    app.dependency_overrides[obtener_proveedor_llm] = lambda: proveedor_llm
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

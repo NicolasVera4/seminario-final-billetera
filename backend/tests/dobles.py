@@ -12,3 +12,24 @@ class RelojFijo:
 
     def avanzar(self, delta) -> None:
         self.instante = self.instante + delta
+
+
+class FakeLLM:
+    """Doble de ProveedorLLM: devuelve/lanza lo que el test configure y registra lo que recibio."""
+
+    def __init__(self):
+        self.llamadas_clasificar = []
+        self.respuesta_clasificar = None
+        self.respuesta_responder = "Esta es una respuesta de prueba."
+
+    def clasificar_e_interpretar(self, texto, hoy, catalogo):
+        self.llamadas_clasificar.append({"texto": texto, "hoy": hoy, "catalogo": catalogo})
+        if isinstance(self.respuesta_clasificar, Exception):
+            raise self.respuesta_clasificar
+        return self.respuesta_clasificar
+
+    def extraer_movimientos(self, texto_documento, tipo, catalogo):
+        raise NotImplementedError
+
+    def responder(self, pregunta, contexto_usuario, fragmentos, historial):
+        return self.respuesta_responder
