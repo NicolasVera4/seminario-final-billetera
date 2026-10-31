@@ -43,3 +43,43 @@ export function guardarMovimientos(datos: MovimientoEntrada[]): Promise<Movimien
     body: JSON.stringify(datos),
   })
 }
+
+export interface FiltrosHistorial {
+  desde?: string
+  hasta?: string
+  categoria_id?: number
+  tipo?: 'INGRESO' | 'EGRESO'
+  medio_pago_id?: number
+  q?: string
+  pagina?: number
+  por_pagina?: number
+}
+
+export interface MovimientoListado {
+  id: number
+  fecha: string
+  descripcion: string
+  categoria: string | null
+  medio_pago: string | null
+  origen: string
+  monto: number
+  tipo: 'INGRESO' | 'EGRESO'
+}
+
+export interface Historial {
+  items: MovimientoListado[]
+  total: number
+  pagina: number
+  por_pagina: number
+}
+
+export function listarMovimientos(filtros: FiltrosHistorial = {}): Promise<Historial> {
+  const params = new URLSearchParams()
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor !== undefined && valor !== '') {
+      params.set(clave, String(valor))
+    }
+  }
+  const query = params.toString()
+  return solicitar<Historial>(`/movimientos${query ? `?${query}` : ''}`)
+}

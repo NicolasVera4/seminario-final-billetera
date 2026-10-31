@@ -81,3 +81,21 @@ class MovimientoSalida(BaseModel):
     creado_en: datetime
 
     model_config = {"from_attributes": True}
+
+
+class MovimientoListadoSalida(BaseModel):
+    id: int
+    fecha: date
+    descripcion: str
+    categoria: str | None
+    medio_pago: str | None
+    origen: str
+    monto: Decimal
+    tipo: TipoMovimiento
+
+
+class HistorialSalida(BaseModel):
+    items: list[MovimientoListadoSalida]
+    total: int
+    pagina: int
+    por_pagina: int

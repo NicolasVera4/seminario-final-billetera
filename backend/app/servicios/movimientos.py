@@ -1,14 +1,18 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.esquemas.movimientos import (
     CatalogosSalida,
+    HistorialSalida,
     MovimientoEntrada,
     MovimientoSalida,
     ResultadoValidacionSalida,
 )
 from app.modelos.categoria import Categoria
+from app.modelos.enums import TipoMovimiento
 from app.modelos.medio_pago import MedioPago
 from app.modelos.movimiento import Movimiento
 from app.modelos.origen import Origen
@@ -107,3 +111,18 @@ def guardar_movimientos(
     sesion.commit()
 
     return [MovimientoSalida.model_validate(m) for m in movimientos_creados]
+
+
+def listar_movimientos(
+    sesion: Session,
+    usuario: Usuario,
+    desde: date | None,
+    hasta: date | None,
+    categoria_id: int | None,
+    tipo: TipoMovimiento | None,
+    medio_pago_id: int | None,
+    q: str | None,
+    pagina: int,
+    por_pagina: int,
+) -> HistorialSalida:
+    raise NotImplementedError
