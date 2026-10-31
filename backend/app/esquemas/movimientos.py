@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -35,3 +35,49 @@ class BorradorMovimientoSalida(BaseModel):
     categoria_id: int | None
     categoria_sugerida: str | None
     medio_pago_id: int | None
+
+
+class ItemCategoriaSalida(BaseModel):
+    id: int
+    nombre: str
+
+    model_config = {"from_attributes": True}
+
+
+class CatalogosSalida(BaseModel):
+    categorias: list[ItemCategoriaSalida]
+    medios_pago: list[ItemCategoriaSalida]
+    origenes: list[ItemCategoriaSalida]
+
+
+class MovimientoEntrada(BaseModel):
+    monto: Decimal
+    fecha: date
+    tipo: TipoMovimiento
+    descripcion: str
+    categoria_id: int | None = None
+    medio_pago_id: int | None = None
+    origen: str = "Texto"
+    conversacion_id: int | None = None
+    comprobante_id: int | None = None
+    cuota_numero: int | None = None
+    cuota_total: int | None = None
+
+
+class ResultadoValidacionSalida(BaseModel):
+    errores: list[str]
+    advertencias: list[str]
+
+
+class MovimientoSalida(BaseModel):
+    id: int
+    monto: Decimal
+    fecha: date
+    tipo: TipoMovimiento
+    descripcion: str
+    categoria_id: int | None
+    medio_pago_id: int | None
+    origen_id: int
+    creado_en: datetime
+
+    model_config = {"from_attributes": True}

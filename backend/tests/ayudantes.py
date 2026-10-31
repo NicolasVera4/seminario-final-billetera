@@ -22,3 +22,15 @@ def registrar_y_loguear(cliente, nombre=NOMBRE_DEFECTO, correo=CORREO_DEFECTO, c
 
 def auth(token):
     return {"Authorization": f"Bearer {token}"}
+
+
+def id_categoria(sesion, nombre):
+    from app.modelos.categoria import Categoria
+
+    return sesion.query(Categoria).filter_by(nombre=nombre).one().id
+
+
+def id_medio_pago(sesion, nombre):
+    from app.modelos.medio_pago import MedioPago
+
+    return sesion.query(MedioPago).filter_by(nombre=nombre).one().id
