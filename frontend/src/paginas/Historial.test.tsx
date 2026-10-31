@@ -69,7 +69,7 @@ describe('Historial', () => {
     const filas = await screen.findAllByRole('row')
     expect(within(filas[1]).getByText('Compra en el súper')).toBeInTheDocument()
     expect(within(filas[1]).getByText('−$15.000,00')).toBeInTheDocument()
-    expect(within(filas[2]).getByText('Sueldo')).toBeInTheDocument()
+    expect(within(filas[2]).getAllByText('Sueldo')).toHaveLength(2)
     expect(within(filas[2]).getByText('+$980.000,00')).toBeInTheDocument()
   })
 
@@ -102,7 +102,9 @@ describe('Historial', () => {
     const usuario = userEvent.setup()
     await usuario.selectOptions(screen.getByLabelText('Categoría'), 'Sueldo')
 
-    expect(await screen.findByText('Sueldo')).toBeInTheDocument()
+    const tabla = await screen.findByRole('table')
+    expect(within(tabla).getAllByRole('row')).toHaveLength(2)
+    expect(within(tabla).getAllByText('Sueldo')).toHaveLength(2)
   })
 
   it('hu07_ca3 busca por texto', async () => {

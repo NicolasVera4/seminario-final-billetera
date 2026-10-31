@@ -1,13 +1,14 @@
 from datetime import date
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.esquemas.movimientos import (
     CatalogosSalida,
     HistorialSalida,
     MovimientoEntrada,
+    MovimientoListadoSalida,
     MovimientoSalida,
     ResultadoValidacionSalida,
 )
@@ -125,4 +126,47 @@ def listar_movimientos(
     pagina: int,
     por_pagina: int,
 ) -> HistorialSalida:
-    raise NotImplementedError
+    consulta = (
+        select(Movimiento, Categoria.nombre, MedioPago.nombre, Origen.nombre)
+        .outerjoin(Categoria, Movimiento.categoria_id == Categoria.id)
+        .outerjoin(MedioPago, Movimiento.medio_pago_id == MedioPago.id)
+        .join(Origen, Movimiento.origen_id == Origen.id)
+        .where(Movimiento.usuario_id == usuario.id)
+    )
+
+    if desde is not None:
+        consulta = consulta.where(Movimiento.fecha >= desde)
+    if hasta is not None:
+        consulta = consulta.where(Movimiento.fecha <= hasta)
+    if categoria_id is not None:
+        consulta = consulta.where(Movimiento.categoria_id == categoria_id)
+    if tipo is not None:
+        consulta = consulta.where(Movimiento.tipo == tipo)
+    if medio_pago_id is not None:
+        consulta = consulta.where(Movimiento.medio_pago_id == medio_pago_id)
+    if q:
+        patron = f"%{q}%"
+        consulta = consulta.where(
+            or_(Movimiento.descripcion.ilike(patron), cast(Movimiento.monto, String).like(patron))
+        )
+
+    total = sesion.execute(select(func.count()).select_from(consulta.subquery())).scalar_one()
+
+    consulta = consulta.order_by(Movimiento.fecha.desc(), Movimiento.id.desc())
+    filas = sesion.execute(consulta.offset((pagina - 1) * por_pagina).limit(por_pagina)).all()
+
+    items = [
+        MovimientoListadoSalida(
+            id=movimiento.id,
+            fecha=movimiento.fecha,
+            descripcion=movimiento.descripcion,
+            categoria=nombre_categoria,
+            medio_pago=nombre_medio_pago,
+            origen=nombre_origen,
+            monto=movimiento.monto,
+            tipo=movimiento.tipo,
+        )
+        for movimiento, nombre_categoria, nombre_medio_pago, nombre_origen in filas
+    ]
+
+    return HistorialSalida(items=items, total=total, pagina=pagina, por_pagina=por_pagina)
