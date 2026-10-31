@@ -1,0 +1,81 @@
+# Conjunto de oro para HU-03 (interpretacion con el LLM real).
+# Cada entrada: mensaje tal como lo escribiria un usuario + lo que se espera
+# que interprete el modelo. fecha_hoy simula la fecha del dia para CA2.
+# Fase 2 corre solo las primeras 10; el conjunto completo (~30) se arma en la Fase 12.
+
+- texto: "gasté 15000 en el súper con débito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 15000
+    tipo: EGRESO
+    medio_pago: "Débito"
+    categoria: "Supermercado"
+
+- texto: "pagué la cuota del gimnasio, 28 mil"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 28000
+    tipo: EGRESO
+
+- texto: "cobré el sueldo, 850000 por transferencia"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 850000
+    tipo: INGRESO
+    medio_pago: "Transferencia"
+    categoria: "Sueldo"
+
+- texto: "ayer pagué 4500 de nafta en efectivo"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 4500
+    tipo: EGRESO
+    medio_pago: "Efectivo"
+    categoria: "Transporte"
+
+- texto: "gasté 12000 en remedios con débito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 12000
+    tipo: EGRESO
+    medio_pago: "Débito"
+    categoria: "Salud y deporte"
+
+- texto: "compré ropa"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    faltantes: ["monto"]
+
+- texto: "¿cuánto gasté en comida en octubre?"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_DATOS
+
+- texto: "¿cómo puedo ahorrar más?"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_ASESORAMIENTO
+
+- texto: "pagué 9000 de luz con tarjeta de crédito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 9000
+    tipo: EGRESO
+    medio_pago: "Crédito"
+    categoria: "Hogar y servicios"
+
+- texto: "comí una pizza con amigos, salió 18000, pagué con mercado pago"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 18000
+    tipo: EGRESO
+    medio_pago: "Billetera virtual"
+    categoria: "Restaurantes"
