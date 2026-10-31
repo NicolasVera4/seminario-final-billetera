@@ -14,14 +14,14 @@ El proyecto arranca en un repositorio nuevo y vacío: no se reutiliza ni se copi
 - [x] **Rojo/Verde:** `test_salud_responde_ok` (`GET /api/salud`) y un test de render de `App` en el frontend.
 - [x] Migración inicial con todas las tablas del TRD §3 y seed de catálogos.
 
-## Fase 1 — Usuarios y sesión (HU-01, HU-02)
+## Fase 1 — Usuarios y sesión (HU-01, HU-02) ✅
 Tests mínimos:
 - HU-01 CA1–CA4, contraseña > 64 → 422, hash bcrypt con factor 12, correo normalizado.
 - HU-02 CA1 (mismo mensaje para correo inexistente y contraseña errónea), CA2, CA3 (aislamiento entre dos usuarios), CA4 (token vencido → 401).
 - Bloqueo tras 5 fallos, desbloqueo a los 15 min (reloj inyectado), reset del contador tras login exitoso.
 - Header `X-Token-Renovado` en respuestas autenticadas.
 - Frontend: pantallas de Crear cuenta e Iniciar sesión (Figuras 7 y 8), mensajes de error, redirección al login cuando la API devuelve 401.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 2 — Interpretación en lenguaje natural (HU-03)
 - `ProveedorLLM` + `FakeLLM` + `ProveedorGroq`.
