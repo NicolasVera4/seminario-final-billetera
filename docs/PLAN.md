@@ -23,12 +23,12 @@ Tests mínimos:
 - Frontend: pantallas de Crear cuenta e Iniciar sesión (Figuras 7 y 8), mensajes de error, redirección al login cuando la API devuelve 401.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 2 — Interpretación en lenguaje natural (HU-03)
+## Fase 2 — Interpretación en lenguaje natural (HU-03) ✅
 - `ProveedorLLM` + `FakeLLM` + `ProveedorGroq`.
 - Tests: HU-03 CA1–CA4 con `FakeLLM`; el prompt no contiene nombre ni correo; JSON inválido → reintento → error amable; persistencia de conversación y mensajes.
 - Frontend: pantalla de chat (Figura 9) con lista de conversaciones a la izquierda.
 - Integración: primeras 10 entradas de `conjunto_oro.yaml` contra Groq real.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 3 — Validación y confirmación (HU-04)
 - Tests unitarios de `validacion.py` para cada regla; tests de API de CA1–CA5; el backend revalida al guardar aunque el cliente mande datos inválidos.
