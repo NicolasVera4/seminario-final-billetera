@@ -6,13 +6,13 @@ Cada fase sigue el ciclo de `CLAUDE.md`: Plan → Rojo → Verde → Refactor �
 
 ---
 
-## Fase 0 — Andamiaje desde cero
+## Fase 0 — Andamiaje desde cero ✅
 El proyecto arranca en un repositorio nuevo y vacío: no se reutiliza ni se copia código de desarrollos anteriores. Todo se escribe en este repo, siguiendo el ciclo TDD.
-- [ ] `git init`, `.gitignore` (Python, Node, `.env`, volúmenes de datos) y primer commit con `CLAUDE.md` y `docs/`.
-- [ ] Estructura de carpetas del TRD, `docker-compose.yml` (incluye `db_test`), `Makefile`, `.env.example`.
-- [ ] pytest, Alembic y Vitest configurados.
-- [ ] **Rojo/Verde:** `test_salud_responde_ok` (`GET /api/salud`) y un test de render de `App` en el frontend.
-- [ ] Migración inicial con todas las tablas del TRD §3 y seed de catálogos.
+- [x] `git init`, `.gitignore` (Python, Node, `.env`, volúmenes de datos) y primer commit con `CLAUDE.md` y `docs/`.
+- [x] Estructura de carpetas del TRD, `docker-compose.yml` (incluye `db_test`), `Makefile`, `.env.example`.
+- [x] pytest, Alembic y Vitest configurados.
+- [x] **Rojo/Verde:** `test_salud_responde_ok` (`GET /api/salud`) y un test de render de `App` en el frontend.
+- [x] Migración inicial con todas las tablas del TRD §3 y seed de catálogos.
 
 ## Fase 1 — Usuarios y sesión (HU-01, HU-02)
 Tests mínimos:
