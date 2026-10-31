@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { alVencerSesion } from './api/cliente'
+import RutaProtegida from './componentes/RutaProtegida'
+import Chat from './paginas/Chat'
 import Login from './paginas/Login'
 import Registro from './paginas/Registro'
 
@@ -21,7 +23,14 @@ function App() {
       <Routes>
         <Route path="/registro" element={<Registro />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<h1>Qash</h1>} />
+        <Route
+          path="/"
+          element={
+            <RutaProtegida>
+              <Chat />
+            </RutaProtegida>
+          }
+        />
       </Routes>
     </BrowserRouter>
   )

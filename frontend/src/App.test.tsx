@@ -1,11 +1,16 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { borrarToken } from './api/cliente'
 
 describe('App', () => {
-  it('renderiza el nombre de la aplicación', () => {
+  beforeEach(() => {
+    borrarToken()
+  })
+
+  it('sin sesión, la ruta raíz redirige a Iniciar sesión', () => {
     render(<App />)
 
-    expect(screen.getByText('Qash')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
   })
 })
