@@ -30,7 +30,25 @@ export class ErrorApi extends Error {
 }
 
 export async function solicitar<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
-  const respuesta = await fetch(`${BASE_URL}${ruta}`, opciones)
+  const token = obtenerToken()
+  const headers = new Headers(opciones.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const respuesta = await fetch(`${BASE_URL}${ruta}`, { ...opciones, headers })
+
+  const tokenRenovado = respuesta.headers.get('X-Token-Renovado')
+  if (tokenRenovado) {
+    guardarToken(tokenRenovado)
+  }
+
+  if (respuesta.status === 401) {
+    borrarToken()
+    manejadorVencimiento?.()
+    throw new ErrorApi(401, 'Sesión vencida.')
+  }
+
   const cuerpo = await respuesta.json().catch(() => null)
 
   if (!respuesta.ok) {

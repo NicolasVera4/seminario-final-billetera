@@ -1,13 +1,30 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, Request, Response, status
+from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.db import obtener_sesion
 from app.modelos.usuario import Usuario
-from app.servicios.reloj import Reloj, obtener_reloj
+from app.servicios.seguridad import decodificar_token, generar_token
 
 
 def usuario_actual(
+    request: Request,
+    response: Response,
     sesion: Session = Depends(obtener_sesion),
-    reloj: Reloj = Depends(obtener_reloj),
 ) -> Usuario:
-    raise NotImplementedError
+    encabezado = request.headers.get("Authorization", "")
+    if not encabezado.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autenticado.")
+
+    token = encabezado.removeprefix("Bearer ")
+    try:
+        payload = decodificar_token(token)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sesión vencida.")
+
+    usuario = sesion.get(Usuario, int(payload["sub"]))
+    if usuario is None or not usuario.activo:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autenticado.")
+
+    response.headers["X-Token-Renovado"] = generar_token(usuario.id)
+    return usuario
