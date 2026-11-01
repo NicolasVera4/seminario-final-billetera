@@ -45,11 +45,11 @@ Tests mínimos:
 - Frontend: Figura 11 (sin proyección ni anomalías todavía), estado vacío.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 6 — Comprobantes por imagen o PDF (HU-05)
+## Fase 6 — Comprobantes por imagen o PDF (HU-05) ✅
 - Generar fixtures (ticket, factura con texto, factura escaneada).
 - Tests: CA1–CA4; PDF con texto no pasa por OCR; PDF escaneado sí; 415 para formatos no admitidos; tamaño máximo.
 - Frontend: adjuntar archivo desde el chat.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 7 — Resumen de tarjeta (HU-06)
 - Fixture: resumen de 3 páginas con cuotas, en versión digital y rasterizada.
