@@ -156,7 +156,14 @@ class ProveedorGroq:
         return respuesta.choices[0].message.content
 
     def detectar_columnas(self, encabezados: list[str], filas_muestra: list[list[str]]) -> ColumnasDetectadas:
-        raise NotImplementedError
+        prompt = _construir_prompt_columnas(encabezados, filas_muestra)
+        for _ in range(2):
+            bruto = self._cliente_json(prompt)
+            try:
+                return ColumnasDetectadas.model_validate(json.loads(bruto))
+            except (json.JSONDecodeError, ValidationError):
+                continue
+        raise ErrorInterpretacion
 
 
 def obtener_proveedor_llm() -> ProveedorLLM:

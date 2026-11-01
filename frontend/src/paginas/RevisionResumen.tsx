@@ -8,6 +8,7 @@ import { guardarMovimientos } from '../api/movimientos'
 interface EstadoResumen {
   nombreArchivo: string
   paginasLeidas: number
+  filasDescartadas?: number
   archivoRef: string
   comprobanteTipo: string
   items: ItemResumen[]
@@ -33,6 +34,11 @@ function formatearFecha(fechaIso: string) {
 
 function pluralizar(cantidad: number, singular: string, plural: string) {
   return `${cantidad} ${cantidad === 1 ? singular : plural}`
+}
+
+const ORIGEN_POR_COMPROBANTE: Record<string, string> = {
+  RESUMEN_TARJETA: 'Resumen',
+  EXTRACTO: 'Extracto',
 }
 
 export default function RevisionResumen() {
@@ -62,6 +68,7 @@ export default function RevisionResumen() {
 
   const cantidadDuplicados = filas.filter((f) => f.posible_duplicado).length
   const cantidadSinCategoria = filas.filter((f) => f.errores.includes('CATEGORIA_INVALIDA')).length
+  const cantidadSinMedioPago = filas.filter((f) => f.errores.includes('MEDIO_PAGO_FALTANTE')).length
   const seleccionadas = filas.filter((f) => f.incluido)
   const totalSeleccionado = seleccionadas.reduce((acumulado, f) => acumulado + f.monto, 0)
   const hayPendientesEnSeleccionadas = seleccionadas.some((f) => f.errores.length > 0)
@@ -80,9 +87,9 @@ export default function RevisionResumen() {
           medio_pago_id: fila.medio_pago_id,
           cuota_numero: fila.cuota_numero,
           cuota_total: fila.cuota_total,
-          origen: 'Resumen',
+          origen: ORIGEN_POR_COMPROBANTE[estado.comprobanteTipo] ?? 'Resumen',
           archivo_ref: estado.archivoRef,
-          comprobante_tipo: estado.comprobanteTipo as 'RESUMEN_TARJETA',
+          comprobante_tipo: estado.comprobanteTipo as 'RESUMEN_TARJETA' | 'EXTRACTO',
         })),
       )
       navegar('/historial')
@@ -97,9 +104,16 @@ export default function RevisionResumen() {
       <p>Nada se guarda hasta que confirmes</p>
 
       <h1>Revisá los consumos del resumen</h1>
-      <p>
-        {estado.nombreArchivo}, {estado.paginasLeidas} páginas leídas. Medio de pago: tarjeta de crédito.
-      </p>
+      {estado.comprobanteTipo === 'EXTRACTO' ? (
+        <p>
+          {estado.nombreArchivo}, {estado.items.length + (estado.filasDescartadas ?? 0)} filas leídas,{' '}
+          {estado.filasDescartadas ?? 0} descartadas.
+        </p>
+      ) : (
+        <p>
+          {estado.nombreArchivo}, {estado.paginasLeidas} páginas leídas. Medio de pago: tarjeta de crédito.
+        </p>
+      )}
 
       <p>{pluralizar(filas.length, 'consumo detectado', 'consumos detectados')}</p>
       {cantidadDuplicados > 0 && (
@@ -107,6 +121,9 @@ export default function RevisionResumen() {
       )}
       {cantidadSinCategoria > 0 && (
         <p>{pluralizar(cantidadSinCategoria, 'categoría para elegir', 'categorías para elegir')}</p>
+      )}
+      {cantidadSinMedioPago > 0 && (
+        <p>{pluralizar(cantidadSinMedioPago, 'medio de pago para elegir', 'medios de pago para elegir')}</p>
       )}
 
       <table>
@@ -117,6 +134,7 @@ export default function RevisionResumen() {
             <th>Descripción</th>
             <th>Cuota</th>
             <th>Categoría</th>
+            <th>Medio de pago</th>
             <th>Monto</th>
             <th>Acciones</th>
           </tr>
@@ -163,7 +181,35 @@ export default function RevisionResumen() {
                         </option>
                       ))}
                     </select>
-                    <p>&quot;{fila.categoria_sugerida}&quot; no está en el catálogo.</p>
+                    {fila.categoria_sugerida && (
+                      <p>&quot;{fila.categoria_sugerida}&quot; no está en el catálogo.</p>
+                    )}
+                  </>
+                )}
+              </td>
+              <td>
+                {fila.medio_pago_id != null ? (
+                  catalogos?.medios_pago.find((m) => m.id === fila.medio_pago_id)?.nombre
+                ) : (
+                  <>
+                    <label htmlFor={`medio-pago-${fila.id}`}>Medio de pago de {fila.descripcion}</label>
+                    <select
+                      id={`medio-pago-${fila.id}`}
+                      value=""
+                      onChange={(evento) =>
+                        actualizarFila(fila.id, {
+                          medio_pago_id: Number(evento.target.value),
+                          errores: fila.errores.filter((e) => e !== 'MEDIO_PAGO_FALTANTE'),
+                        })
+                      }
+                    >
+                      <option value="">Elegí un medio de pago</option>
+                      {catalogos?.medios_pago.map((medioPago) => (
+                        <option key={medioPago.id} value={medioPago.id}>
+                          {medioPago.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </>
                 )}
               </td>

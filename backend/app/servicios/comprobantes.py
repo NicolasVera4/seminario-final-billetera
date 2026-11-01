@@ -16,6 +16,12 @@ from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
 from app.servicios.errores import ErrorServicio
 from app.servicios.ingesta.ocr import extraer_texto_imagen
 from app.servicios.ingesta.pdf import extraer_texto_pdf
+from app.servicios.ingesta.planilla import (
+    detectar_columnas_por_sinonimos,
+    leer_filas,
+    parsear_fecha,
+    parsear_monto,
+)
 from app.servicios.interpretacion import obtener_catalogo, resolver_categoria, resolver_medio_pago
 from app.servicios.reloj import Reloj
 from app.servicios.validacion import es_posible_duplicado_lote, validar_campos
@@ -188,7 +194,69 @@ def procesar_extracto(
     content_type: str,
     nombre_archivo: str,
 ) -> ExtractoRespuesta:
-    raise NotImplementedError
+    _validar_formato_y_tamano(content_type, contenido, FORMATOS_ADMITIDOS_EXTRACTO, MENSAJE_FORMATOS_EXTRACTO)
+
+    try:
+        filas = leer_filas(contenido, nombre_archivo)
+    except Exception:
+        raise ErrorComprobante(422, MENSAJE_NO_INTERPRETABLE)
+
+    encabezados = list(filas.columns)
+    columnas = detectar_columnas_por_sinonimos(encabezados)
+    if columnas["fecha"] is None or columnas["monto"] is None:
+        filas_muestra = filas.head(3).astype(str).values.tolist()
+        try:
+            detectadas = proveedor_llm.detectar_columnas(encabezados, filas_muestra)
+        except ErrorInterpretacion:
+            raise ErrorComprobante(422, MENSAJE_COLUMNAS_NO_DETECTADAS)
+        columnas["fecha"] = columnas["fecha"] or detectadas.fecha
+        columnas["monto"] = columnas["monto"] or detectadas.monto
+        columnas["descripcion"] = columnas["descripcion"] or detectadas.descripcion
+
+    if columnas["fecha"] is None or columnas["monto"] is None:
+        raise ErrorComprobante(422, MENSAJE_COLUMNAS_NO_DETECTADAS)
+
+    categorias, medios_pago, _ = obtener_catalogo(sesion)
+    categorias_validas = {c.id for c in categorias}
+    medios_pago_validos = {m.id for m in medios_pago}
+    hoy = reloj.ahora().date()
+    existentes = _montos_existentes(sesion, usuario.id)
+
+    items = []
+    filas_descartadas = 0
+    for _, fila in filas.iterrows():
+        fecha = parsear_fecha(fila[columnas["fecha"]])
+        monto_con_signo = parsear_monto(str(fila[columnas["monto"]]))
+        if fecha is None or monto_con_signo is None:
+            filas_descartadas += 1
+            continue
+
+        tipo = TipoMovimiento.EGRESO if monto_con_signo < 0 else TipoMovimiento.INGRESO
+        monto = abs(monto_con_signo)
+        descripcion = (
+            str(fila[columnas["descripcion"]]).strip() if columnas["descripcion"] else ""
+        ) or "Movimiento importado"
+        errores = validar_campos(monto, fecha, None, None, hoy, categorias_validas, medios_pago_validos)
+        posible_duplicado = es_posible_duplicado_lote(fecha, monto, existentes)
+        items.append(
+            ItemResumenSalida(
+                monto=monto,
+                fecha=fecha,
+                tipo=tipo,
+                descripcion=descripcion,
+                categoria_id=None,
+                categoria_sugerida=None,
+                medio_pago_id=None,
+                cuota_numero=None,
+                cuota_total=None,
+                errores=errores,
+                posible_duplicado=posible_duplicado,
+            )
+        )
+
+    archivo_ref = _guardar_archivo(usuario.id, nombre_archivo, contenido)
+
+    return ExtractoRespuesta(items=items, archivo_ref=archivo_ref, filas_descartadas=filas_descartadas)
 
 
 def _montos_existentes(sesion: Session, usuario_id: int) -> list[tuple]:

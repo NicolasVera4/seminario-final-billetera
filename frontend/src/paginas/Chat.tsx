@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
-import { subirComprobante, subirResumen } from '../api/archivos'
+import { subirComprobante, subirExtracto, subirResumen } from '../api/archivos'
 import type { Borrador, Conversacion, Fuente, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
 import { ErrorApi } from '../api/cliente'
@@ -153,6 +153,29 @@ export default function Chat() {
     setGrabando(true)
   }
 
+  async function manejarAdjuntarExtracto(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!archivo) return
+
+    try {
+      const resultado = await subirExtracto(archivo)
+      navegar('/resumen', {
+        state: {
+          nombreArchivo: archivo.name,
+          paginasLeidas: 0,
+          filasDescartadas: resultado.filas_descartadas,
+          archivoRef: resultado.archivo_ref,
+          comprobanteTipo: 'EXTRACTO',
+          items: resultado.items,
+        },
+      })
+    } catch (error) {
+      const texto = error instanceof ErrorApi ? error.message : 'No pudimos procesar el extracto.'
+      agregarMensajeAsistente(texto)
+    }
+  }
+
   function descartarBorrador(mensajeId: number) {
     setBorradoresPorMensaje((previos) => {
       const { [mensajeId]: _descartado, ...resto } = previos
@@ -192,6 +215,8 @@ export default function Chat() {
           <input id="adjuntar" type="file" onChange={manejarAdjuntar} />
           <label htmlFor="adjuntar-resumen">Adjuntar resumen de tarjeta</label>
           <input id="adjuntar-resumen" type="file" onChange={manejarAdjuntarResumen} />
+          <label htmlFor="adjuntar-extracto">Adjuntar extracto</label>
+          <input id="adjuntar-extracto" type="file" onChange={manejarAdjuntarExtracto} />
           <input
             placeholder="Escribí un gasto o un ingreso, o hacé una pregunta..."
             value={texto}
