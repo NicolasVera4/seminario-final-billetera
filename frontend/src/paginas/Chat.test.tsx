@@ -333,6 +333,34 @@ describe('Chat', () => {
     expect(screen.queryByText('Buscó en la documentación')).not.toBeInTheDocument()
   })
 
+  it('hu14 adjuntar un extracto navega a la pantalla de revisión', async () => {
+    servidor.use(
+      http.post('/api/archivos/extracto', () =>
+        HttpResponse.json({
+          items: [],
+          archivo_ref: '1/abc_extracto.csv',
+          filas_descartadas: 1,
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+    const archivo = new File(['contenido'], 'extracto.csv', { type: 'text/csv' })
+
+    await usuario.upload(screen.getByLabelText('Adjuntar extracto'), archivo)
+
+    expect(navegarMock).toHaveBeenCalledWith(
+      '/resumen',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          nombreArchivo: 'extracto.csv',
+          comprobanteTipo: 'EXTRACTO',
+          filasDescartadas: 1,
+        }),
+      }),
+    )
+  })
+
   it('hu11_ca1_ca2 graba un audio, lo transcribe y pone el texto editable en el campo', async () => {
     servidor.use(
       http.post('/api/voz/transcribir', () =>

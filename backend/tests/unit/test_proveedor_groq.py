@@ -62,3 +62,25 @@ def test_extraer_movimientos_si_los_dos_intentos_fallan_levanta_error():
 
     with pytest.raises(ErrorInterpretacion):
         proveedor.extraer_movimientos("texto del ticket", TipoComprobante.TICKET, catalogo)
+
+
+JSON_VALIDO_COLUMNAS = '{"fecha": "Día", "monto": "Guita", "descripcion": "Qué fue"}'
+
+
+def test_detectar_columnas_reintenta_una_vez_si_el_primer_json_es_invalido():
+    cliente = _fabricar_cliente(["esto no es json", JSON_VALIDO_COLUMNAS])
+    proveedor = ProveedorGroq(cliente_json=cliente)
+
+    resultado = proveedor.detectar_columnas(["Día", "Qué fue", "Guita"], [["03/09/2026", "Nafta", "-20000"]])
+
+    assert resultado.fecha == "Día"
+    assert resultado.monto == "Guita"
+    assert resultado.descripcion == "Qué fue"
+
+
+def test_detectar_columnas_si_los_dos_intentos_fallan_levanta_error():
+    cliente = _fabricar_cliente(["mal", "mal"])
+    proveedor = ProveedorGroq(cliente_json=cliente)
+
+    with pytest.raises(ErrorInterpretacion):
+        proveedor.detectar_columnas(["Día"], [["03/09/2026"]])

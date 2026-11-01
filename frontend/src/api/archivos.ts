@@ -46,3 +46,18 @@ export function subirResumen(archivo: File): Promise<ResumenRespuesta> {
     body: formData,
   })
 }
+
+export interface ExtractoRespuesta {
+  items: ItemResumen[]
+  archivo_ref: string
+  filas_descartadas: number
+}
+
+export function subirExtracto(archivo: File): Promise<ExtractoRespuesta> {
+  const formData = new FormData()
+  formData.append('archivo', archivo)
+  return solicitar<ExtractoRespuesta>('/archivos/extracto', {
+    method: 'POST',
+    body: formData,
+  })
+}

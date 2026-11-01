@@ -33,3 +33,9 @@ class ResumenRespuesta(BaseModel):
     archivo_ref: str
     comprobante_tipo: TipoComprobante
     paginas_leidas: int
+
+
+class ExtractoRespuesta(BaseModel):
+    items: list[ItemResumenSalida]
+    archivo_ref: str
+    filas_descartadas: int

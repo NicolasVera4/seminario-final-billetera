@@ -23,6 +23,12 @@ class InterpretacionMovimiento(BaseModel):
     cuota_total: int | None = None
 
 
+class ColumnasDetectadas(BaseModel):
+    fecha: str | None = None
+    monto: str | None = None
+    descripcion: str | None = None
+
+
 class Interpretacion(BaseModel):
     intencion: Literal["REGISTRO", "CONSULTA_DATOS", "CONSULTA_ASESORAMIENTO"]
     movimiento: InterpretacionMovimiento | None = None

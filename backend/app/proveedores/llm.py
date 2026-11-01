@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.esquemas.chat import MensajeSalida
-from app.esquemas.movimientos import Catalogo, Interpretacion, InterpretacionMovimiento
+from app.esquemas.movimientos import Catalogo, ColumnasDetectadas, Interpretacion, InterpretacionMovimiento
 from app.modelos.enums import RolMensaje, TipoComprobante
 
 
@@ -30,6 +30,10 @@ class ProveedorLLM(Protocol):
         fragmentos: list,
         historial: list[MensajeSalida],
     ) -> str: ...
+
+    def detectar_columnas(
+        self, encabezados: list[str], filas_muestra: list[list[str]]
+    ) -> ColumnasDetectadas: ...
 
 
 def _construir_prompt_interpretacion(texto: str, hoy: date, catalogo: Catalogo) -> str:
@@ -72,6 +76,20 @@ def _construir_prompt_extraccion(texto_documento: str, tipo: TipoComprobante, ca
         '"tipo": "INGRESO|EGRESO" o null, "medio_pago": "texto" o null, "descripcion": "texto" o null, '
         '"categoria": "texto" o null, "cuota_numero": numero o null, "cuota_total": numero o null}]}\n'
         f"Texto extraído del documento:\n{texto_documento}"
+    )
+
+
+def _construir_prompt_columnas(encabezados: list[str], filas_muestra: list[list[str]]) -> str:
+    encabezados_texto = ", ".join(encabezados)
+    filas_texto = "\n".join(", ".join(fila) for fila in filas_muestra)
+    return (
+        "Sos un asistente que identifica columnas en un extracto bancario importado desde CSV o Excel.\n"
+        f"Encabezados: {encabezados_texto}.\n"
+        f"Primeras filas de ejemplo:\n{filas_texto}\n"
+        "Decime qué encabezado corresponde a la fecha, cuál al monto y cuál a la descripción del "
+        "movimiento. Respondé SOLO un JSON con esta forma exacta, sin texto adicional:\n"
+        '{"fecha": "<encabezado>" o null, "monto": "<encabezado>" o null, '
+        '"descripcion": "<encabezado>" o null}'
     )
 
 
@@ -136,6 +154,9 @@ class ProveedorGroq:
         cliente = Groq(api_key=settings.groq_api_key)
         respuesta = cliente.chat.completions.create(model=settings.groq_modelo, messages=mensajes)
         return respuesta.choices[0].message.content
+
+    def detectar_columnas(self, encabezados: list[str], filas_muestra: list[list[str]]) -> ColumnasDetectadas:
+        raise NotImplementedError
 
 
 def obtener_proveedor_llm() -> ProveedorLLM:

@@ -24,6 +24,8 @@ class FakeLLM:
         self.respuesta_extraer = []
         self.respuesta_responder = "Esta es una respuesta de prueba."
         self.llamadas_responder = []
+        self.llamadas_detectar_columnas = []
+        self.respuesta_detectar_columnas = None
 
     def clasificar_e_interpretar(self, texto, hoy, catalogo):
         self.llamadas_clasificar.append({"texto": texto, "hoy": hoy, "catalogo": catalogo})
@@ -47,6 +49,12 @@ class FakeLLM:
             }
         )
         return self.respuesta_responder
+
+    def detectar_columnas(self, encabezados, filas_muestra):
+        self.llamadas_detectar_columnas.append({"encabezados": encabezados, "filas_muestra": filas_muestra})
+        if isinstance(self.respuesta_detectar_columnas, Exception):
+            raise self.respuesta_detectar_columnas
+        return self.respuesta_detectar_columnas
 
 
 class FakeTranscriptor:

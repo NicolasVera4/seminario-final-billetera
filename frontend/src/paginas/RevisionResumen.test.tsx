@@ -76,6 +76,29 @@ const ESTADO_RESUMEN = {
   ],
 }
 
+const ESTADO_EXTRACTO = {
+  nombreArchivo: 'extracto_septiembre.csv',
+  paginasLeidas: 0,
+  filasDescartadas: 2,
+  archivoRef: '1/abc_extracto.csv',
+  comprobanteTipo: 'EXTRACTO',
+  items: [
+    {
+      monto: 15000,
+      fecha: '2026-09-01',
+      tipo: 'EGRESO',
+      descripcion: 'Supermercado',
+      categoria_id: null,
+      categoria_sugerida: null,
+      medio_pago_id: null,
+      cuota_numero: null,
+      cuota_total: null,
+      errores: ['CATEGORIA_INVALIDA', 'MEDIO_PAGO_FALTANTE'],
+      posible_duplicado: false,
+    },
+  ],
+}
+
 function renderizar(estado = ESTADO_RESUMEN) {
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/resumen', state: estado }]}>
@@ -160,5 +183,46 @@ describe('RevisionResumen', () => {
     expect(descripciones).not.toContain('Restaurante La Nieta')
     expect(descripciones).toContain('Spotify')
     expect(descripciones).toContain('Tienda deportiva zapatillas')
+  })
+
+  it('hu14_ca2 muestra cuántas filas se leyeron y cuántas se descartaron', async () => {
+    renderizar(ESTADO_EXTRACTO)
+
+    expect(
+      screen.getByText('extracto_septiembre.csv, 3 filas leídas, 2 descartadas.'),
+    ).toBeInTheDocument()
+  })
+
+  it('hu14_ca4 fila sin medio de pago muestra el select para elegirlo y bloquea el guardado', async () => {
+    renderizar(ESTADO_EXTRACTO)
+    const usuario = userEvent.setup()
+
+    expect(screen.getByRole('button', { name: /Guardar \d+ movimientos/ })).toBeDisabled()
+    await screen.findByRole('option', { name: 'Restaurantes' })
+    await usuario.selectOptions(screen.getByLabelText('Categoría de Supermercado'), 'Restaurantes')
+    await usuario.selectOptions(screen.getByLabelText('Medio de pago de Supermercado'), 'Crédito')
+
+    expect(screen.getByRole('button', { name: /Guardar \d+ movimientos/ })).toBeEnabled()
+  })
+
+  it('hu14 al guardar un extracto envía origen Extracto y comprobante_tipo EXTRACTO', async () => {
+    let cuerpoEnviado: unknown = null
+    servidor.use(
+      http.post('/api/movimientos', async ({ request }) => {
+        cuerpoEnviado = await request.json()
+        return HttpResponse.json([], { status: 201 })
+      }),
+    )
+    renderizar(ESTADO_EXTRACTO)
+    const usuario = userEvent.setup()
+
+    await screen.findByRole('option', { name: 'Restaurantes' })
+    await usuario.selectOptions(screen.getByLabelText('Categoría de Supermercado'), 'Restaurantes')
+    await usuario.selectOptions(screen.getByLabelText('Medio de pago de Supermercado'), 'Crédito')
+    await usuario.click(screen.getByRole('button', { name: /Guardar \d+ movimientos/ }))
+
+    const movimientos = cuerpoEnviado as Array<{ origen: string; comprobante_tipo: string }>
+    expect(movimientos[0].origen).toBe('Extracto')
+    expect(movimientos[0].comprobante_tipo).toBe('EXTRACTO')
   })
 })

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db import obtener_sesion
 from app.dependencias import usuario_no_admin
-from app.esquemas.archivos import ComprobanteRespuesta, ResumenRespuesta
+from app.esquemas.archivos import ComprobanteRespuesta, ExtractoRespuesta, ResumenRespuesta
 from app.modelos.usuario import Usuario
 from app.proveedores.llm import ProveedorLLM, obtener_proveedor_llm
 from app.servicios import comprobantes as servicio_comprobantes
@@ -41,6 +41,23 @@ async def subir_resumen(
     contenido = await archivo.read()
     try:
         return servicio_comprobantes.procesar_resumen(
+            sesion, usuario, proveedor_llm, reloj, contenido, archivo.content_type, archivo.filename
+        )
+    except ErrorComprobante as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail)
+
+
+@router.post("/extracto", response_model=ExtractoRespuesta)
+async def subir_extracto(
+    archivo: UploadFile,
+    usuario: Usuario = Depends(usuario_no_admin),
+    sesion: Session = Depends(obtener_sesion),
+    reloj: Reloj = Depends(obtener_reloj),
+    proveedor_llm: ProveedorLLM = Depends(obtener_proveedor_llm),
+):
+    contenido = await archivo.read()
+    try:
+        return servicio_comprobantes.procesar_extracto(
             sesion, usuario, proveedor_llm, reloj, contenido, archivo.content_type, archivo.filename
         )
     except ErrorComprobante as error:

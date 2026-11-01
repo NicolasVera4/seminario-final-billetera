@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.esquemas.archivos import ComprobanteRespuesta, ItemResumenSalida, ResumenRespuesta
+from app.esquemas.archivos import ComprobanteRespuesta, ExtractoRespuesta, ItemResumenSalida, ResumenRespuesta
 from app.esquemas.movimientos import BorradorMovimientoSalida
 from app.modelos.enums import TipoComprobante, TipoMovimiento
 from app.modelos.movimiento import Movimiento
@@ -27,13 +27,20 @@ FORMATOS_ADMITIDOS = {
     "application/pdf": TipoComprobante.FACTURA,
 }
 FORMATOS_ADMITIDOS_RESUMEN = {"application/pdf": TipoComprobante.RESUMEN_TARJETA}
+FORMATOS_ADMITIDOS_EXTRACTO = {
+    "text/csv": TipoComprobante.EXTRACTO,
+    "application/vnd.ms-excel": TipoComprobante.EXTRACTO,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": TipoComprobante.EXTRACTO,
+}
 TAMANO_MAXIMO_BYTES = 10 * 1024 * 1024
 
 MENSAJE_FORMATOS = "Formato no admitido. Subí una imagen (jpg, png, webp) o un PDF."
 MENSAJE_FORMATOS_RESUMEN = "Formato no admitido. Subí el PDF del resumen de tu tarjeta."
+MENSAJE_FORMATOS_EXTRACTO = "Formato no admitido. Subí un CSV o Excel (.csv, .xlsx)."
 MENSAJE_TAMANO = "El archivo supera el tamaño máximo de 10 MB."
 MENSAJE_SIN_MONTO = "No pudimos leer un monto en el archivo. Probá cargarlo por texto."
 MENSAJE_NO_INTERPRETABLE = "No pudimos leer el comprobante. Probá cargarlo por texto."
+MENSAJE_COLUMNAS_NO_DETECTADAS = "No pudimos identificar las columnas de fecha y monto del archivo."
 MENSAJE_MOVIMIENTO_INTERPRETADO = "Encontré este movimiento, revisalo y confirmalo."
 
 
@@ -170,6 +177,18 @@ def procesar_resumen(
         comprobante_tipo=tipo_comprobante,
         paginas_leidas=paginas_leidas,
     )
+
+
+def procesar_extracto(
+    sesion: Session,
+    usuario: Usuario,
+    proveedor_llm: ProveedorLLM,
+    reloj: Reloj,
+    contenido: bytes,
+    content_type: str,
+    nombre_archivo: str,
+) -> ExtractoRespuesta:
+    raise NotImplementedError
 
 
 def _montos_existentes(sesion: Session, usuario_id: int) -> list[tuple]:
