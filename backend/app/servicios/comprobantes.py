@@ -1,20 +1,17 @@
 import uuid
 from pathlib import Path
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.esquemas.archivos import ComprobanteRespuesta
-from app.esquemas.movimientos import BorradorMovimientoSalida, Catalogo
-from app.modelos.categoria import Categoria
+from app.esquemas.movimientos import BorradorMovimientoSalida
 from app.modelos.enums import TipoComprobante
-from app.modelos.medio_pago import MedioPago
 from app.modelos.usuario import Usuario
 from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
 from app.servicios.ingesta.ocr import extraer_texto_imagen
 from app.servicios.ingesta.pdf import extraer_texto_pdf
-from app.servicios.interpretacion import resolver_categoria, resolver_medio_pago
+from app.servicios.interpretacion import obtener_catalogo, resolver_categoria, resolver_medio_pago
 from app.servicios.reloj import Reloj
 
 FORMATOS_ADMITIDOS = {
@@ -59,11 +56,7 @@ def procesar_comprobante(
     else:
         texto = extraer_texto_imagen(contenido)
 
-    categorias = sesion.execute(select(Categoria)).scalars().all()
-    medios_pago = sesion.execute(select(MedioPago)).scalars().all()
-    catalogo = Catalogo(
-        categorias=[c.nombre for c in categorias], medios_pago=[m.nombre for m in medios_pago]
-    )
+    categorias, medios_pago, catalogo = obtener_catalogo(sesion)
 
     try:
         movimientos = proveedor_llm.extraer_movimientos(texto, tipo_comprobante, catalogo)

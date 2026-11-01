@@ -29,12 +29,7 @@ def procesar_mensaje(
     conversacion = _obtener_o_crear_conversacion(sesion, usuario, datos)
     _guardar_mensaje(sesion, conversacion, RolMensaje.USUARIO, datos.texto)
 
-    categorias = sesion.execute(select(Categoria)).scalars().all()
-    medios_pago = sesion.execute(select(MedioPago)).scalars().all()
-    catalogo = Catalogo(
-        categorias=[c.nombre for c in categorias],
-        medios_pago=[m.nombre for m in medios_pago],
-    )
+    categorias, medios_pago, catalogo = obtener_catalogo(sesion)
     hoy = reloj.ahora().date()
 
     borrador = None
@@ -77,6 +72,16 @@ def procesar_mensaje(
         mensaje=MensajeSalida.model_validate(mensaje_asistente),
         borrador=borrador,
     )
+
+
+def obtener_catalogo(sesion: Session) -> tuple[list[Categoria], list[MedioPago], Catalogo]:
+    categorias = sesion.execute(select(Categoria)).scalars().all()
+    medios_pago = sesion.execute(select(MedioPago)).scalars().all()
+    catalogo = Catalogo(
+        categorias=[c.nombre for c in categorias],
+        medios_pago=[m.nombre for m in medios_pago],
+    )
+    return categorias, medios_pago, catalogo
 
 
 def resolver_categoria(categorias: list[Categoria], nombre: str | None) -> tuple[int | None, str | None]:
