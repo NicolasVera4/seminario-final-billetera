@@ -4,14 +4,15 @@ import { describe, expect, it } from 'vitest'
 import BarraLateral from './BarraLateral'
 
 describe('BarraLateral', () => {
-  it('muestra los links de navegación a Chat e Historial', () => {
+  it('muestra los links de navegación a Dashboard, Chat e Historial', () => {
     render(
       <MemoryRouter>
         <BarraLateral />
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/chat')
     expect(screen.getByRole('link', { name: 'Historial' })).toHaveAttribute('href', '/historial')
   })
 })

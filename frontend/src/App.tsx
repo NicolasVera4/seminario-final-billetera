@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { alVencerSesion } from './api/cliente'
 import Layout from './componentes/Layout'
 import Chat from './paginas/Chat'
+import Dashboard from './paginas/Dashboard'
 import Historial from './paginas/Historial'
 import Login from './paginas/Login'
 import Registro from './paginas/Registro'
@@ -26,6 +27,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route
           path="/"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/chat"
           element={
             <Layout>
               <Chat />
