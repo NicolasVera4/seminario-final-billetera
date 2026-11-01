@@ -1,6 +1,5 @@
-from datetime import date
+from datetime import date, timedelta
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.esquemas.dashboard import (
@@ -10,11 +9,8 @@ from app.esquemas.dashboard import (
     PuntoEvolucionSalida,
     TotalMesSalida,
 )
-from app.modelos.categoria import Categoria
-from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
 from app.servicios.analisis import (
-    MovimientoAnalisis,
     alertas as calcular_alertas,
     distribucion_por_categoria,
     evolucion as calcular_evolucion,
@@ -23,6 +19,7 @@ from app.servicios.analisis import (
     texto_variacion,
     totales,
 )
+from app.servicios.consulta_movimientos import obtener_movimientos_analisis
 from app.servicios.reloj import Reloj
 
 CANTIDAD_MESES_EVOLUCION = 6
@@ -51,27 +48,11 @@ def obtener_dashboard(
     for _ in range(CANTIDAD_MESES_EVOLUCION - 1):
         anio_inicio, mes_inicio = mes_anterior(anio_inicio, mes_inicio)
     anio_fin, mes_fin = _mes_siguiente(anio, mes_num)
+    ultimo_dia_incluido = _primer_dia_mes(anio_fin, mes_fin) - timedelta(days=1)
 
-    filas = sesion.execute(
-        select(Movimiento, Categoria.nombre)
-        .outerjoin(Categoria, Movimiento.categoria_id == Categoria.id)
-        .where(
-            Movimiento.usuario_id == usuario.id,
-            Movimiento.fecha >= _primer_dia_mes(anio_inicio, mes_inicio),
-            Movimiento.fecha < _primer_dia_mes(anio_fin, mes_fin),
-        )
-    ).all()
-
-    movimientos = [
-        MovimientoAnalisis(
-            fecha=movimiento.fecha,
-            tipo=movimiento.tipo,
-            categoria=nombre_categoria,
-            categoria_id=movimiento.categoria_id,
-            monto=movimiento.monto,
-        )
-        for movimiento, nombre_categoria in filas
-    ]
+    movimientos = obtener_movimientos_analisis(
+        sesion, usuario.id, desde=_primer_dia_mes(anio_inicio, mes_inicio), hasta=ultimo_dia_incluido
+    )
 
     ingresos_mes, egresos_mes, saldo = totales(
         [m for m in movimientos if m.fecha.year == anio and m.fecha.month == mes_num]

@@ -3,21 +3,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.esquemas.chat import MensajeSalida
-from app.modelos.categoria import Categoria
 from app.modelos.documento_referencia import DocumentoReferencia
-from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
 from app.proveedores.embeddings import Embedder
 from app.proveedores.llm import ProveedorLLM
 from app.proveedores.vectorial import COLECCION_FRAGMENTOS
-from app.servicios.analisis import (
-    MovimientoAnalisis,
-    distribucion_por_categoria,
-    evolucion,
-    mes_anterior,
-    nombre_mes,
-)
+from app.servicios.analisis import MovimientoAnalisis, distribucion_por_categoria, evolucion, mes_anterior, nombre_mes
 from app.servicios.chunking import dividir_en_fragmentos
+from app.servicios.consulta_movimientos import obtener_movimientos_analisis
 from app.servicios.reloj import Reloj
 
 DISCLAIMER = "Esto es orientativo y no reemplaza el asesoramiento de un profesional."
@@ -85,7 +78,7 @@ def responder_consulta(
     historial: list[MensajeSalida],
 ) -> tuple[str, list[dict]]:
     hoy = reloj.ahora().date()
-    movimientos = _movimientos_para_analisis(sesion, usuario.id)
+    movimientos = obtener_movimientos_analisis(sesion, usuario.id)
     hay_movimientos = len(movimientos) > 0
 
     contexto_usuario = None
@@ -140,24 +133,6 @@ def _fuente_movimientos(hoy) -> dict:
         "desde": f"{anio_desde:04d}-{mes_desde:02d}",
         "hasta": f"{hoy.year:04d}-{hoy.month:02d}",
     }
-
-
-def _movimientos_para_analisis(sesion: Session, usuario_id: int) -> list[MovimientoAnalisis]:
-    filas = sesion.execute(
-        select(Movimiento, Categoria.nombre)
-        .outerjoin(Categoria, Movimiento.categoria_id == Categoria.id)
-        .where(Movimiento.usuario_id == usuario_id)
-    ).all()
-    return [
-        MovimientoAnalisis(
-            fecha=movimiento.fecha,
-            tipo=movimiento.tipo,
-            categoria=nombre_categoria,
-            categoria_id=movimiento.categoria_id,
-            monto=movimiento.monto,
-        )
-        for movimiento, nombre_categoria in filas
-    ]
 
 
 def _construir_resumen(movimientos: list[MovimientoAnalisis], hoy) -> str:
