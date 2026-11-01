@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.modelos.enums import TipoMovimiento
+from app.modelos.enums import TipoComprobante, TipoMovimiento
 
 
 class Catalogo(BaseModel):
@@ -62,6 +62,8 @@ class MovimientoEntrada(BaseModel):
     comprobante_id: int | None = None
     cuota_numero: int | None = None
     cuota_total: int | None = None
+    archivo_ref: str | None = None
+    comprobante_tipo: TipoComprobante | None = None
 
 
 class ResultadoValidacionSalida(BaseModel):

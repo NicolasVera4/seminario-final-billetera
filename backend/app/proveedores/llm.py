@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.esquemas.chat import MensajeSalida
-from app.esquemas.movimientos import BorradorMovimientoSalida, Catalogo, Interpretacion
+from app.esquemas.movimientos import Catalogo, Interpretacion, InterpretacionMovimiento
 from app.modelos.enums import RolMensaje, TipoComprobante
 
 
@@ -21,7 +21,7 @@ class ProveedorLLM(Protocol):
 
     def extraer_movimientos(
         self, texto_documento: str, tipo: TipoComprobante, catalogo: Catalogo
-    ) -> list[BorradorMovimientoSalida]: ...
+    ) -> list[InterpretacionMovimiento]: ...
 
     def responder(
         self,
@@ -76,7 +76,7 @@ class ProveedorGroq:
 
     def extraer_movimientos(
         self, texto_documento: str, tipo: TipoComprobante, catalogo: Catalogo
-    ) -> list[BorradorMovimientoSalida]:
+    ) -> list[InterpretacionMovimiento]:
         raise NotImplementedError
 
     def responder(

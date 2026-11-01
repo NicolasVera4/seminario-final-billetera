@@ -20,6 +20,8 @@ class FakeLLM:
     def __init__(self):
         self.llamadas_clasificar = []
         self.respuesta_clasificar = None
+        self.llamadas_extraer = []
+        self.respuesta_extraer = []
         self.respuesta_responder = "Esta es una respuesta de prueba."
 
     def clasificar_e_interpretar(self, texto, hoy, catalogo):
@@ -29,7 +31,10 @@ class FakeLLM:
         return self.respuesta_clasificar
 
     def extraer_movimientos(self, texto_documento, tipo, catalogo):
-        raise NotImplementedError
+        self.llamadas_extraer.append({"texto_documento": texto_documento, "tipo": tipo, "catalogo": catalogo})
+        if isinstance(self.respuesta_extraer, Exception):
+            raise self.respuesta_extraer
+        return self.respuesta_extraer
 
     def responder(self, pregunta, contexto_usuario, fragmentos, historial):
         return self.respuesta_responder
