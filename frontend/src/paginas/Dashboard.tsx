@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Legend,
@@ -33,6 +35,10 @@ function claveMes(anio: number, mes: number) {
   return `${anio}-${String(mes).padStart(2, '0')}`
 }
 
+function capitalizar(texto: string) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
 export default function Dashboard() {
   const [mesParam, setMesParam] = useState<string | null>(null)
   const [datos, setDatos] = useState<DashboardData | null>(null)
@@ -56,6 +62,23 @@ export default function Dashboard() {
     nombre: MESES_ES[punto.mes - 1].slice(0, 3),
     Ingresos: punto.ingresos,
     Gastos: punto.egresos,
+  }))
+
+  const datosProyeccion = [
+    ...datos.evolucion.map((punto) => ({
+      nombre: MESES_ES[punto.mes - 1].slice(0, 3),
+      real: punto.egresos,
+    })),
+    ...(datos.proyeccion.datos_suficientes && datos.proyeccion.mes !== null
+      ? [{ nombre: MESES_ES[datos.proyeccion.mes - 1].slice(0, 3), proyectado: datos.proyeccion.monto }]
+      : []),
+  ]
+
+  const mesesAnomalos = new Set(datos.anomalias.meses.map((m) => claveMes(m.anio, m.mes)))
+  const datosAnomalias = datos.evolucion.map((punto) => ({
+    nombre: MESES_ES[punto.mes - 1].slice(0, 3),
+    monto: punto.egresos,
+    esAnomalo: mesesAnomalos.has(claveMes(punto.anio, punto.mes)),
   }))
 
   return (
@@ -160,6 +183,65 @@ export default function Dashboard() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section>
+            <h2>Proyección de gasto</h2>
+            <p>Estimada con tus últimos 6 meses</p>
+            {datos.proyeccion.datos_suficientes && datos.proyeccion.monto !== null ? (
+              <>
+                {datos.proyeccion.mes !== null && (
+                  <p>
+                    {capitalizar(MESES_ES[datos.proyeccion.mes - 1])} {datos.proyeccion.anio}
+                  </p>
+                )}
+                <p>{formatearMonto(datos.proyeccion.monto)}</p>
+                <BarChart width={500} height={300} data={datosProyeccion}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nombre" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="real" name="Gasto real" fill="#f87171" />
+                  <Bar dataKey="proyectado" name="Proyección" fill="#fbbf24" stroke="#f59e0b" strokeDasharray="4 2" />
+                </BarChart>
+              </>
+            ) : (
+              <p>Todavía no hay suficiente historial para proyectar el gasto del próximo mes.</p>
+            )}
+          </section>
+
+          <section>
+            <h2>Meses con gasto anómalo</h2>
+            <p>Meses que se apartan de tu comportamiento habitual</p>
+            {datos.anomalias.datos_suficientes ? (
+              <>
+                <span>
+                  {datos.anomalias.meses.length} {datos.anomalias.meses.length === 1 ? 'mes' : 'meses'}
+                </span>
+                <BarChart width={500} height={300} data={datosAnomalias}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nombre" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="monto">
+                    {datosAnomalias.map((punto, indice) => (
+                      <Cell key={indice} fill={punto.esAnomalo ? '#dc2626' : '#9ca3af'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+                {datos.anomalias.meses.map((mesAnomalo) => (
+                  <p key={claveMes(mesAnomalo.anio, mesAnomalo.mes)}>
+                    {capitalizar(MESES_ES[mesAnomalo.mes - 1])} {mesAnomalo.anio} ·{' '}
+                    {formatearMonto(mesAnomalo.monto)} · {Math.abs(mesAnomalo.porcentaje_sobre_promedio)}%{' '}
+                    {mesAnomalo.porcentaje_sobre_promedio >= 0 ? 'más' : 'menos'} que el promedio de los
+                    otros meses
+                  </p>
+                ))}
+              </>
+            ) : (
+              <p>Todavía no hay suficiente historial para detectar meses anómalos.</p>
+            )}
           </section>
         </>
       )}

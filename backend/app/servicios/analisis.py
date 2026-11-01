@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
+from sklearn.ensemble import IsolationForest
+from sklearn.linear_model import LinearRegression
+
 from app.modelos.enums import TipoMovimiento
 
 MESES_ES = [
@@ -14,6 +17,7 @@ MESES_HISTORIAL_ALERTA = 3
 MESES_MINIMOS_PROYECCION = 3
 MESES_MINIMOS_ANOMALIAS = 4
 CONTAMINACION_ANOMALIAS = 0.15
+UMBRAL_DESVIACION_ANOMALIA = 30
 
 
 @dataclass
@@ -210,10 +214,26 @@ def alertas(movimientos: list[MovimientoAnalisis], anio: int, mes: int) -> list[
     return resultado
 
 
+def _meses_con_datos(puntos: list[PuntoEvolucion]) -> int:
+    return len([p for p in puntos if p.egresos > 0])
+
+
 def proyeccion_gasto(
     movimientos: list[MovimientoAnalisis], anio: int, mes: int, cantidad: int = 6
 ) -> Proyeccion:
-    raise NotImplementedError
+    puntos = evolucion(movimientos, anio, mes, cantidad)
+    if _meses_con_datos(puntos) < MESES_MINIMOS_PROYECCION:
+        return Proyeccion(datos_suficientes=False, anio=None, mes=None, monto=None)
+
+    xs = [[indice] for indice in range(len(puntos))]
+    ys = [float(p.egresos) for p in puntos]
+    modelo = LinearRegression()
+    modelo.fit(xs, ys)
+    prediccion = modelo.predict([[len(puntos)]])[0]
+    monto = Decimal(str(max(0.0, round(prediccion, 2))))
+
+    anio_proyectado, mes_proyectado = mes_siguiente(anio, mes)
+    return Proyeccion(datos_suficientes=True, anio=anio_proyectado, mes=mes_proyectado, monto=monto)
 
 
 def detectar_anomalias(
@@ -223,6 +243,40 @@ def detectar_anomalias(
     cantidad: int = 6,
     contaminacion: float = CONTAMINACION_ANOMALIAS,
 ) -> Anomalias:
-    raise NotImplementedError
+    puntos = evolucion(movimientos, anio, mes, cantidad)
+    if _meses_con_datos(puntos) < MESES_MINIMOS_ANOMALIAS:
+        return Anomalias(datos_suficientes=False, meses=[])
+
+    valores = [[float(p.egresos)] for p in puntos]
+    modelo = IsolationForest(random_state=42, contamination=contaminacion)
+    etiquetas = modelo.fit_predict(valores)
+
+    meses_anomalos = []
+    for indice, (punto, etiqueta) in enumerate(zip(puntos, etiquetas)):
+        if etiqueta != -1:
+            continue
+        otros = [p.egresos for i, p in enumerate(puntos) if i != indice]
+        promedio_otros = sum(otros, Decimal(0)) / len(otros)
+        porcentaje = (
+            int(((punto.egresos / promedio_otros - 1) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            if promedio_otros
+            else 0
+        )
+        # Con pocos puntos, IsolationForest siempre marca el mas alejado del resto aunque
+        # la diferencia sea minima (ver docs/TRD.md [AJUSTE] en la seccion 9). Se confirma
+        # la anomalia solo si ademas se aparta un 30% o mas del promedio de los otros meses.
+        if abs(porcentaje) < UMBRAL_DESVIACION_ANOMALIA:
+            continue
+        meses_anomalos.append(
+            MesAnomalo(
+                anio=punto.anio,
+                mes=punto.mes,
+                monto=punto.egresos,
+                promedio_otros_meses=promedio_otros,
+                porcentaje_sobre_promedio=porcentaje,
+            )
+        )
+
+    return Anomalias(datos_suficientes=True, meses=meses_anomalos)
 
     return resultado

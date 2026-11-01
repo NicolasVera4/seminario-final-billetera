@@ -187,6 +187,7 @@ Todo calculado sobre egresos confirmados del usuario, agregados por mes calendar
 - **Alertas** (HU-09): para cada categoría, `gasto_mes_actual > 1.30 * promedio(3 meses anteriores)`; requiere 3 meses previos con datos de esa categoría. Se recalcula en cada request al dashboard (no se cachea), lo que cumple CA4.
 - **Proyección** (HU-12): `LinearRegression` sobre el total mensual de los últimos hasta 6 meses (x = índice de mes). Requiere ≥ 3 meses. Proyección negativa → se recorta a 0.
 - **Anomalías** (HU-13): `IsolationForest(random_state=42, contamination=<configurable, default 0.15>)` sobre totales mensuales. Requiere ≥ 4 meses. Validar empíricamente con datos sintéticos que, con 6 meses donde uno duplica al resto, se marca solo ese mes; si con pocos puntos no es estable, documentar el ajuste y avisar (es material para el TFG).
+  - **[AJUSTE]** Se validó empíricamente (Fase 9) que con tan pocos puntos (4 a 6 meses) `IsolationForest` marca casi siempre el mes más alejado del resto como anómalo (`predict() == -1`) aunque la diferencia sea mínima (ej. 2% por debajo del promedio) — el `contamination` configurado no cambia este comportamiento en este rango de tamaño de muestra. Se agregó una confirmación adicional: un mes que `IsolationForest` marca solo se reporta como anómalo si además se aparta un 30% o más del promedio de los otros meses de la ventana (`UMBRAL_DESVIACION_ANOMALIA` en `analisis.py`), mismo orden de magnitud que el umbral de alertas de HU-09. Con esto, series sin un outlier real no marcan ningún mes.
 
 ## 10. Asesoramiento (RAG)
 
