@@ -51,11 +51,11 @@ Tests mínimos:
 - Frontend: adjuntar archivo desde el chat.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 7 — Resumen de tarjeta (HU-06)
+## Fase 7 — Resumen de tarjeta (HU-06) ✅
 - Fixture: resumen de 3 páginas con cuotas, en versión digital y rasterizada.
 - Tests: CA1–CA5; todos los borradores con medio de pago Crédito; guardado en lote solo de los confirmados.
 - Frontend: pantalla de revisión (Figura 10).
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 8 — Asesoramiento con RAG (HU-10)
 - `Embedder` + `FakeEmbedder` (vectores deterministas) + `EmbedderOllama`; Chroma `EphemeralClient` en tests.
