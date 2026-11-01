@@ -241,4 +241,68 @@ describe('Chat', () => {
       }),
     )
   })
+
+  it('hu10_ca3 muestra los chips de origen y de fuentes de una respuesta de asesoramiento', async () => {
+    servidor.use(
+      http.post('/api/chat/mensajes', () =>
+        HttpResponse.json({
+          conversacion_id: 1,
+          mensaje: {
+            id: 2,
+            rol: 'ASISTENTE',
+            contenido: 'Para ahorrar más, separá un 10% apenas cobrás.',
+            fuentes: [
+              { tipo: 'documento', titulo: 'Tips de ahorro', fragmento: 3 },
+              { tipo: 'movimientos', desde: '2026-06', hasta: '2026-09' },
+            ],
+            creado_en: '2026-10-31T12:00:00Z',
+          },
+          borrador: null,
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await usuario.type(
+      screen.getByPlaceholderText('Escribí un gasto o un ingreso, o hacé una pregunta...'),
+      '¿cómo puedo ahorrar más?',
+    )
+    await usuario.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    expect(await screen.findByText('Consultó tus movimientos')).toBeInTheDocument()
+    expect(screen.getByText('Buscó en la documentación')).toBeInTheDocument()
+    expect(screen.getByText('Tips de ahorro · fragmento 3')).toBeInTheDocument()
+    expect(screen.getByText('Tus movimientos de 2026-06 a 2026-09')).toBeInTheDocument()
+  })
+
+  it('sin fuentes no muestra ningún chip de origen', async () => {
+    servidor.use(
+      http.post('/api/chat/mensajes', () =>
+        HttpResponse.json({
+          conversacion_id: 1,
+          mensaje: {
+            id: 2,
+            rol: 'ASISTENTE',
+            contenido: 'Me falta el monto. ¿Cuánto fue?',
+            fuentes: null,
+            creado_en: '2026-10-31T12:00:00Z',
+          },
+          borrador: null,
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await usuario.type(
+      screen.getByPlaceholderText('Escribí un gasto o un ingreso, o hacé una pregunta...'),
+      'compré cosas',
+    )
+    await usuario.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    await screen.findByText('Me falta el monto. ¿Cuánto fue?')
+    expect(screen.queryByText('Consultó tus movimientos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Buscó en la documentación')).not.toBeInTheDocument()
+  })
 })

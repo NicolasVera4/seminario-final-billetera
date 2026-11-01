@@ -7,11 +7,25 @@ export interface Conversacion {
   actualizado_en: string
 }
 
+export interface FuenteDocumento {
+  tipo: 'documento'
+  titulo: string
+  fragmento: number
+}
+
+export interface FuenteMovimientos {
+  tipo: 'movimientos'
+  desde: string
+  hasta: string
+}
+
+export type Fuente = FuenteDocumento | FuenteMovimientos
+
 export interface Mensaje {
   id: number
   rol: 'USUARIO' | 'ASISTENTE'
   contenido: string
-  fuentes: unknown[] | null
+  fuentes: Fuente[] | null
   creado_en: string
 }
 

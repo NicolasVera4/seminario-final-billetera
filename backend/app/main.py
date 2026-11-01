@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.rutas import archivos, auth, catalogos, chat, dashboard, movimientos, salud
+from app.rutas import admin, archivos, auth, catalogos, chat, dashboard, movimientos, salud
 
 app = FastAPI(title="Qash")
 
@@ -21,3 +21,4 @@ app.include_router(movimientos.router, prefix="/api")
 app.include_router(catalogos.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(archivos.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")

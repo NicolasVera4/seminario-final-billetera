@@ -48,6 +48,16 @@ def id_usuario(sesion, correo=CORREO_DEFECTO):
     return sesion.query(Usuario).filter_by(correo=correo).one().id
 
 
+def promover_a_administrador(sesion, correo=CORREO_DEFECTO):
+    from app.modelos.enums import RolUsuario
+    from app.modelos.usuario import Usuario
+
+    usuario = sesion.query(Usuario).filter_by(correo=correo).one()
+    usuario.rol = RolUsuario.ADMINISTRADOR
+    sesion.flush()
+    return usuario
+
+
 def crear_movimiento(
     sesion,
     usuario_id,
