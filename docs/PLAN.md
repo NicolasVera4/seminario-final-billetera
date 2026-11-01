@@ -40,10 +40,10 @@ Tests mínimos:
 - Frontend: Figura 12.
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 5 — Dashboard y alertas (HU-08, HU-09)
+## Fase 5 — Dashboard y alertas (HU-08, HU-09) ✅
 - Tests unitarios de `analisis.py` con datos sintéticos: totales, evolución, distribución, regla del 30 %, sin alerta con menos de 3 meses, contenido de la alerta, recálculo tras guardar.
 - Frontend: Figura 11 (sin proyección ni anomalías todavía), estado vacío.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
 ## Fase 6 — Comprobantes por imagen o PDF (HU-05)
 - Generar fixtures (ticket, factura con texto, factura escaneada).
