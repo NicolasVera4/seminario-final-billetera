@@ -88,16 +88,21 @@ def guardar_movimientos(
 
     origenes_por_nombre = {o.nombre: o.id for o in sesion.execute(select(Origen)).scalars().all()}
 
+    comprobantes_por_archivo_ref: dict[str, int] = {}
     movimientos_creados = []
     for item in datos:
         comprobante_id = item.comprobante_id
         if item.archivo_ref and item.comprobante_tipo:
-            comprobante = Comprobante(
-                usuario_id=usuario.id, tipo=item.comprobante_tipo, ruta_archivo=item.archivo_ref
-            )
-            sesion.add(comprobante)
-            sesion.flush()
-            comprobante_id = comprobante.id
+            if item.archivo_ref in comprobantes_por_archivo_ref:
+                comprobante_id = comprobantes_por_archivo_ref[item.archivo_ref]
+            else:
+                comprobante = Comprobante(
+                    usuario_id=usuario.id, tipo=item.comprobante_tipo, ruta_archivo=item.archivo_ref
+                )
+                sesion.add(comprobante)
+                sesion.flush()
+                comprobante_id = comprobante.id
+                comprobantes_por_archivo_ref[item.archivo_ref] = comprobante_id
 
         movimiento = Movimiento(
             usuario_id=usuario.id,

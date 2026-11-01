@@ -1,18 +1,23 @@
+import io
 import uuid
 from pathlib import Path
 
+import pdfplumber
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.esquemas.archivos import ComprobanteRespuesta, ItemResumenSalida, ResumenRespuesta
 from app.esquemas.movimientos import BorradorMovimientoSalida
-from app.modelos.enums import TipoComprobante
+from app.modelos.enums import TipoComprobante, TipoMovimiento
+from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
 from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
 from app.servicios.ingesta.ocr import extraer_texto_imagen
 from app.servicios.ingesta.pdf import extraer_texto_pdf
 from app.servicios.interpretacion import obtener_catalogo, resolver_categoria, resolver_medio_pago
 from app.servicios.reloj import Reloj
+from app.servicios.validacion import es_posible_duplicado_lote, validar_campos
 
 FORMATOS_ADMITIDOS = {
     "image/jpeg": TipoComprobante.TICKET,
@@ -101,7 +106,77 @@ def procesar_resumen(
     content_type: str,
     nombre_archivo: str,
 ) -> ResumenRespuesta:
-    raise NotImplementedError
+    if content_type not in FORMATOS_ADMITIDOS_RESUMEN:
+        raise ErrorComprobante(415, MENSAJE_FORMATOS_RESUMEN)
+    if len(contenido) > TAMANO_MAXIMO_BYTES:
+        raise ErrorComprobante(413, MENSAJE_TAMANO)
+
+    tipo_comprobante = FORMATOS_ADMITIDOS_RESUMEN[content_type]
+    texto = extraer_texto_pdf(contenido)
+    with pdfplumber.open(io.BytesIO(contenido)) as pdf:
+        paginas_leidas = len(pdf.pages)
+
+    categorias, medios_pago, catalogo = obtener_catalogo(sesion)
+
+    try:
+        movimientos = proveedor_llm.extraer_movimientos(texto, tipo_comprobante, catalogo)
+    except ErrorInterpretacion:
+        raise ErrorComprobante(422, MENSAJE_NO_INTERPRETABLE)
+
+    hoy = reloj.ahora().date()
+    categorias_validas = {c.id for c in categorias}
+    medios_pago_validos = {m.id for m in medios_pago}
+    medio_pago_credito_id = resolver_medio_pago(medios_pago, "Crédito")
+    existentes = _montos_existentes(sesion, usuario.id)
+
+    items = []
+    for movimiento in movimientos:
+        categoria_id, categoria_sugerida = resolver_categoria(categorias, movimiento.categoria)
+        fecha = movimiento.fecha or hoy
+        errores = validar_campos(
+            movimiento.monto,
+            fecha,
+            categoria_id,
+            medio_pago_credito_id,
+            hoy,
+            categorias_validas,
+            medios_pago_validos,
+        )
+        posible_duplicado = (
+            movimiento.monto is not None
+            and es_posible_duplicado_lote(fecha, movimiento.monto, existentes)
+        )
+        items.append(
+            ItemResumenSalida(
+                monto=movimiento.monto if movimiento.monto is not None else 0,
+                fecha=fecha,
+                tipo=movimiento.tipo or TipoMovimiento.EGRESO,
+                descripcion=movimiento.descripcion or "Consumo",
+                categoria_id=categoria_id,
+                categoria_sugerida=categoria_sugerida,
+                medio_pago_id=medio_pago_credito_id,
+                cuota_numero=movimiento.cuota_numero,
+                cuota_total=movimiento.cuota_total,
+                errores=errores,
+                posible_duplicado=posible_duplicado,
+            )
+        )
+
+    archivo_ref = _guardar_archivo(usuario.id, nombre_archivo, contenido)
+
+    return ResumenRespuesta(
+        items=items,
+        archivo_ref=archivo_ref,
+        comprobante_tipo=tipo_comprobante,
+        paginas_leidas=paginas_leidas,
+    )
+
+
+def _montos_existentes(sesion: Session, usuario_id: int) -> list[tuple]:
+    filas = sesion.execute(
+        select(Movimiento.fecha, Movimiento.monto).where(Movimiento.usuario_id == usuario_id)
+    ).all()
+    return [(fecha, monto) for fecha, monto in filas]
 
 
 def _guardar_archivo(usuario_id: int, nombre_original: str, contenido: bytes) -> str:

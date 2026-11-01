@@ -56,7 +56,7 @@ def es_posible_duplicado_lote(
 ) -> bool:
     """Regla de duplicado para lotes (resumen/extracto, HU-06 CA5 y HU-14 CA3):
     misma fecha y mismo monto, sin comparar descripcion (el canal cambia el texto)."""
-    raise NotImplementedError
+    return any(f == fecha and m == monto for f, m in existentes)
 
 
 def validar(

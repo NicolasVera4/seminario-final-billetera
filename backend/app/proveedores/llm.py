@@ -52,16 +52,25 @@ def _construir_prompt_interpretacion(texto: str, hoy: date, catalogo: Catalogo) 
 def _construir_prompt_extraccion(texto_documento: str, tipo: TipoComprobante, catalogo: Catalogo) -> str:
     categorias = ", ".join(catalogo.categorias)
     medios_pago = ", ".join(catalogo.medios_pago)
+    if tipo == TipoComprobante.RESUMEN_TARJETA:
+        instruccion = (
+            "El documento es un resumen de tarjeta de credito con varias paginas. Identificá CADA "
+            "consumo como un movimiento separado. Si un consumo esta en cuotas, completá cuota_numero "
+            "y cuota_total, y usá como monto el valor de la cuota del periodo (no el total de las "
+            "cuotas restantes)."
+        )
+    else:
+        instruccion = "El documento representa UN SOLO movimiento (el total del comprobante), no detalles línea por línea."
     return (
         "Sos un asistente que lee comprobantes de pago en español rioplatense.\n"
         f"Tipo de documento: {tipo.value}.\n"
         f"Categorías válidas: {categorias}.\n"
         f"Medios de pago válidos: {medios_pago}.\n"
-        "El documento representa UN SOLO movimiento (el total del comprobante), no detalles línea por línea.\n"
+        f"{instruccion}\n"
         "Respondé SOLO un JSON con esta forma exacta, sin texto adicional:\n"
         '{"movimientos": [{"monto": numero o null, "fecha": "AAAA-MM-DD" o null, '
         '"tipo": "INGRESO|EGRESO" o null, "medio_pago": "texto" o null, "descripcion": "texto" o null, '
-        '"categoria": "texto" o null}]}\n'
+        '"categoria": "texto" o null, "cuota_numero": numero o null, "cuota_total": numero o null}]}\n'
         f"Texto extraído del documento:\n{texto_documento}"
     )
 
