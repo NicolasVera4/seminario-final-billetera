@@ -1,5 +1,7 @@
 import io
 import uuid
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import pdfplumber
@@ -8,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.esquemas.archivos import ComprobanteRespuesta, ExtractoRespuesta, ItemResumenSalida, ResumenRespuesta
-from app.esquemas.movimientos import BorradorMovimientoSalida
+from app.esquemas.movimientos import BorradorMovimientoSalida, Catalogo
 from app.modelos.enums import TipoComprobante, TipoMovimiento
 from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
@@ -52,6 +54,32 @@ MENSAJE_MOVIMIENTO_INTERPRETADO = "Encontré este movimiento, revisalo y confirm
 
 class ErrorComprobante(ErrorServicio):
     pass
+
+
+@dataclass
+class ContextoLote:
+    """Catalogo y datos del usuario que necesita validar/deduplicar un lote (resumen o extracto)."""
+
+    categorias: list
+    medios_pago: list
+    catalogo: Catalogo
+    categorias_validas: set[int]
+    medios_pago_validos: set[int]
+    hoy: date
+    existentes: list[tuple]
+
+
+def _contexto_lote(sesion: Session, usuario: Usuario, reloj: Reloj) -> ContextoLote:
+    categorias, medios_pago, catalogo = obtener_catalogo(sesion)
+    return ContextoLote(
+        categorias=categorias,
+        medios_pago=medios_pago,
+        catalogo=catalogo,
+        categorias_validas={c.id for c in categorias},
+        medios_pago_validos={m.id for m in medios_pago},
+        hoy=reloj.ahora().date(),
+        existentes=_montos_existentes(sesion, usuario.id),
+    )
 
 
 def _validar_formato_y_tamano(
@@ -129,35 +157,31 @@ def procesar_resumen(
     with pdfplumber.open(io.BytesIO(contenido)) as pdf:
         paginas_leidas = len(pdf.pages)
 
-    categorias, medios_pago, catalogo = obtener_catalogo(sesion)
+    contexto = _contexto_lote(sesion, usuario, reloj)
 
     try:
-        movimientos = proveedor_llm.extraer_movimientos(texto, tipo_comprobante, catalogo)
+        movimientos = proveedor_llm.extraer_movimientos(texto, tipo_comprobante, contexto.catalogo)
     except ErrorInterpretacion:
         raise ErrorComprobante(422, MENSAJE_NO_INTERPRETABLE)
 
-    hoy = reloj.ahora().date()
-    categorias_validas = {c.id for c in categorias}
-    medios_pago_validos = {m.id for m in medios_pago}
-    medio_pago_credito_id = resolver_medio_pago(medios_pago, "Crédito")
-    existentes = _montos_existentes(sesion, usuario.id)
+    medio_pago_credito_id = resolver_medio_pago(contexto.medios_pago, "Crédito")
 
     items = []
     for movimiento in movimientos:
-        categoria_id, categoria_sugerida = resolver_categoria(categorias, movimiento.categoria)
-        fecha = movimiento.fecha or hoy
+        categoria_id, categoria_sugerida = resolver_categoria(contexto.categorias, movimiento.categoria)
+        fecha = movimiento.fecha or contexto.hoy
         errores = validar_campos(
             movimiento.monto,
             fecha,
             categoria_id,
             medio_pago_credito_id,
-            hoy,
-            categorias_validas,
-            medios_pago_validos,
+            contexto.hoy,
+            contexto.categorias_validas,
+            contexto.medios_pago_validos,
         )
         posible_duplicado = (
             movimiento.monto is not None
-            and es_posible_duplicado_lote(fecha, movimiento.monto, existentes)
+            and es_posible_duplicado_lote(fecha, movimiento.monto, contexto.existentes)
         )
         items.append(
             ItemResumenSalida(
@@ -216,11 +240,7 @@ def procesar_extracto(
     if columnas["fecha"] is None or columnas["monto"] is None:
         raise ErrorComprobante(422, MENSAJE_COLUMNAS_NO_DETECTADAS)
 
-    categorias, medios_pago, _ = obtener_catalogo(sesion)
-    categorias_validas = {c.id for c in categorias}
-    medios_pago_validos = {m.id for m in medios_pago}
-    hoy = reloj.ahora().date()
-    existentes = _montos_existentes(sesion, usuario.id)
+    contexto = _contexto_lote(sesion, usuario, reloj)
 
     items = []
     filas_descartadas = 0
@@ -236,8 +256,10 @@ def procesar_extracto(
         descripcion = (
             str(fila[columnas["descripcion"]]).strip() if columnas["descripcion"] else ""
         ) or "Movimiento importado"
-        errores = validar_campos(monto, fecha, None, None, hoy, categorias_validas, medios_pago_validos)
-        posible_duplicado = es_posible_duplicado_lote(fecha, monto, existentes)
+        errores = validar_campos(
+            monto, fecha, None, None, contexto.hoy, contexto.categorias_validas, contexto.medios_pago_validos
+        )
+        posible_duplicado = es_posible_duplicado_lote(fecha, monto, contexto.existentes)
         items.append(
             ItemResumenSalida(
                 monto=monto,
