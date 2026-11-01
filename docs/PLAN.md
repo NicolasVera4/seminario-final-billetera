@@ -81,9 +81,11 @@ Tests mínimos:
 
 **Pendiente:** el test de integración (`tests/integracion/test_voz_integracion.py`) necesita que subas `tests/fixtures/audio/gasto.ogg` — se saltea solo mientras no esté.
 
-## Fase 11 — Extracto CSV/Excel (HU-14)
+## Fase 11 — Extracto CSV/Excel (HU-14) ✅
 - Tests: CA1–CA4 con al menos dos formatos de encabezado distintos, filas inválidas contadas, duplicados excluidos.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
+
+**Decisiones de esta fase (no estaban especificadas en el TRD):** se asume una sola columna de monto con signo (no columnas separadas de débito/crédito); el tipo (ingreso/egreso) se infiere del signo del monto, ya que no hay columna de tipo; categoría y medio de pago quedan sin resolver (el TRD solo prevé el LLM para detectar columnas, no para clasificar cada fila) y se completan a mano en la revisión. No había mockup ni ítem de frontend agendado para esta fase, así que se reusó la pantalla de revisión del resumen de tarjeta (generalizada) en vez de crear una nueva.
 
 ## Fase 12 — Cierre y demo
 - [ ] `make seed-demo`: usuario de demo con 6 meses de movimientos (incluye un mes anómalo y una categoría con alerta, como en la Figura 11).
