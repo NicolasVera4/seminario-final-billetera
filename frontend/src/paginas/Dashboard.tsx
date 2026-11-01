@@ -39,6 +39,10 @@ function capitalizar(texto: string) {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
+function abreviarMes(mes: number) {
+  return MESES_ES[mes - 1].slice(0, 3)
+}
+
 export default function Dashboard() {
   const [mesParam, setMesParam] = useState<string | null>(null)
   const [datos, setDatos] = useState<DashboardData | null>(null)
@@ -59,24 +63,24 @@ export default function Dashboard() {
   }
 
   const datosEvolucion = datos.evolucion.map((punto) => ({
-    nombre: MESES_ES[punto.mes - 1].slice(0, 3),
+    nombre: abreviarMes(punto.mes),
     Ingresos: punto.ingresos,
     Gastos: punto.egresos,
   }))
 
   const datosProyeccion = [
     ...datos.evolucion.map((punto) => ({
-      nombre: MESES_ES[punto.mes - 1].slice(0, 3),
+      nombre: abreviarMes(punto.mes),
       real: punto.egresos,
     })),
     ...(datos.proyeccion.datos_suficientes && datos.proyeccion.mes !== null
-      ? [{ nombre: MESES_ES[datos.proyeccion.mes - 1].slice(0, 3), proyectado: datos.proyeccion.monto }]
+      ? [{ nombre: abreviarMes(datos.proyeccion.mes), proyectado: datos.proyeccion.monto }]
       : []),
   ]
 
   const mesesAnomalos = new Set(datos.anomalias.meses.map((m) => claveMes(m.anio, m.mes)))
   const datosAnomalias = datos.evolucion.map((punto) => ({
-    nombre: MESES_ES[punto.mes - 1].slice(0, 3),
+    nombre: abreviarMes(punto.mes),
     monto: punto.egresos,
     esAnomalo: mesesAnomalos.has(claveMes(punto.anio, punto.mes)),
   }))

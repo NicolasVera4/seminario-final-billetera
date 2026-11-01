@@ -19,6 +19,7 @@ from app.servicios.analisis import (
     distribucion_por_categoria,
     evolucion as calcular_evolucion,
     mes_anterior,
+    mes_siguiente,
     nombre_mes,
     proyeccion_gasto,
     texto_variacion,
@@ -34,12 +35,6 @@ def _primer_dia_mes(anio: int, mes: int) -> date:
     return date(anio, mes, 1)
 
 
-def _mes_siguiente(anio: int, mes: int) -> tuple[int, int]:
-    if mes == 12:
-        return anio + 1, 1
-    return anio, mes + 1
-
-
 def obtener_dashboard(
     sesion: Session, usuario: Usuario, mes: str | None, reloj: Reloj
 ) -> DashboardSalida:
@@ -52,7 +47,7 @@ def obtener_dashboard(
     anio_inicio, mes_inicio = anio, mes_num
     for _ in range(CANTIDAD_MESES_EVOLUCION - 1):
         anio_inicio, mes_inicio = mes_anterior(anio_inicio, mes_inicio)
-    anio_fin, mes_fin = _mes_siguiente(anio, mes_num)
+    anio_fin, mes_fin = mes_siguiente(anio, mes_num)
     ultimo_dia_incluido = _primer_dia_mes(anio_fin, mes_fin) - timedelta(days=1)
 
     movimientos = obtener_movimientos_analisis(
