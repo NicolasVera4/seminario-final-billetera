@@ -5,8 +5,10 @@ from app.modelos.enums import TipoMovimiento
 from app.servicios.analisis import (
     MovimientoAnalisis,
     alertas,
+    detectar_anomalias,
     distribucion_por_categoria,
     evolucion,
+    proyeccion_gasto,
     texto_variacion,
     totales,
 )
@@ -81,6 +83,16 @@ def test_distribucion_por_categoria_ordena_descendente_con_otros_al_final():
     assert total_monto == Decimal("35000")
 
 
+def _serie_mensual(montos, anio_inicio, mes_inicio, categoria="Varios", categoria_id=1):
+    """Un movimiento de egreso por mes, empezando en (anio_inicio, mes_inicio)."""
+    resultado = []
+    anio, mes = anio_inicio, mes_inicio
+    for monto in montos:
+        resultado.append(_mov(date(anio, mes, 15), EGRESO, monto, categoria=categoria, categoria_id=categoria_id))
+        anio, mes = (anio + 1, 1) if mes == 12 else (anio, mes + 1)
+    return resultado
+
+
 def _tres_meses_previos(categoria, categoria_id, montos, mes_base=9):
     return [
         _mov(date(2026, mes_base - i - 1, 15), EGRESO, monto, categoria=categoria, categoria_id=categoria_id)
@@ -130,3 +142,77 @@ def test_hu09_ca3_la_alerta_incluye_categoria_monto_actual_y_promedio():
     assert resultado[0].monto_actual == Decimal("86400")
     assert resultado[0].promedio == Decimal("60000")
     assert resultado[0].porcentaje == 44
+
+
+def test_hu12_ca1_tendencia_creciente_proyecta_por_encima_del_ultimo_mes():
+    movimientos = _serie_mensual(
+        ["500000", "510000", "520000", "530000", "540000", "550000"], 2026, 4
+    )
+
+    resultado = proyeccion_gasto(movimientos, anio=2026, mes=9, cantidad=6)
+
+    assert resultado.datos_suficientes is True
+    assert (resultado.anio, resultado.mes) == (2026, 10)
+    assert resultado.monto > Decimal("550000")
+
+
+def test_hu12_ca2_sin_datos_suficientes_con_menos_de_3_meses():
+    movimientos = _serie_mensual(["500000", "510000"], 2026, 8)
+
+    resultado = proyeccion_gasto(movimientos, anio=2026, mes=9, cantidad=6)
+
+    assert resultado.datos_suficientes is False
+    assert resultado.monto is None
+
+
+def test_hu12_proyeccion_negativa_se_recorta_a_cero():
+    movimientos = _serie_mensual(["900000", "450000", "100000"], 2026, 7)
+
+    resultado = proyeccion_gasto(movimientos, anio=2026, mes=9, cantidad=3)
+
+    assert resultado.datos_suficientes is True
+    assert resultado.monto == Decimal("0")
+
+
+def test_hu13_ca1_detecta_el_mes_que_duplica_al_resto_con_6_meses_de_historial():
+    movimientos = _serie_mensual(
+        ["500000", "505000", "495000", "1000000", "510000", "495000"], 2026, 4
+    )
+
+    resultado = detectar_anomalias(movimientos, anio=2026, mes=9, cantidad=6)
+
+    assert resultado.datos_suficientes is True
+    assert [(m.anio, m.mes) for m in resultado.meses] == [(2026, 7)]
+
+
+def test_hu13_ca3_el_mes_anomalo_incluye_monto_promedio_y_porcentaje():
+    movimientos = _serie_mensual(
+        ["500000", "505000", "495000", "1000000", "510000", "495000"], 2026, 4
+    )
+
+    resultado = detectar_anomalias(movimientos, anio=2026, mes=9, cantidad=6)
+
+    anomalo = resultado.meses[0]
+    assert anomalo.monto == Decimal("1000000")
+    assert anomalo.promedio_otros_meses == Decimal("501000")
+    assert anomalo.porcentaje_sobre_promedio == 100
+
+
+def test_hu13_ca1_no_marca_meses_normales_sin_outlier():
+    movimientos = _serie_mensual(
+        ["500000", "505000", "495000", "510000", "490000", "500000"], 2026, 4
+    )
+
+    resultado = detectar_anomalias(movimientos, anio=2026, mes=9, cantidad=6)
+
+    assert resultado.datos_suficientes is True
+    assert resultado.meses == []
+
+
+def test_hu13_ca2_sin_datos_suficientes_con_menos_de_4_meses():
+    movimientos = _serie_mensual(["500000", "510000", "520000"], 2026, 7)
+
+    resultado = detectar_anomalias(movimientos, anio=2026, mes=9, cantidad=6)
+
+    assert resultado.datos_suficientes is False
+    assert resultado.meses == []

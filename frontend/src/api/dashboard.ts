@@ -27,6 +27,26 @@ export interface Alerta {
   promedio: number
 }
 
+export interface Proyeccion {
+  datos_suficientes: boolean
+  anio: number | null
+  mes: number | null
+  monto: number | null
+}
+
+export interface MesAnomalo {
+  anio: number
+  mes: number
+  monto: number
+  promedio_otros_meses: number
+  porcentaje_sobre_promedio: number
+}
+
+export interface Anomalias {
+  datos_suficientes: boolean
+  meses: MesAnomalo[]
+}
+
 export interface Dashboard {
   anio: number
   mes: number
@@ -36,6 +56,8 @@ export interface Dashboard {
   evolucion: PuntoEvolucion[]
   distribucion_categorias: CategoriaDistribucion[]
   alertas: Alerta[]
+  proyeccion: Proyeccion
+  anomalias: Anomalias
   hay_movimientos: boolean
 }
 

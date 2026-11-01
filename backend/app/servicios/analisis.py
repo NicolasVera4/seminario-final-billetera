@@ -11,6 +11,9 @@ MESES_ES = [
 
 UMBRAL_ALERTA = Decimal("1.30")
 MESES_HISTORIAL_ALERTA = 3
+MESES_MINIMOS_PROYECCION = 3
+MESES_MINIMOS_ANOMALIAS = 4
+CONTAMINACION_ANOMALIAS = 0.15
 
 
 @dataclass
@@ -47,6 +50,29 @@ class Alerta:
     promedio: Decimal
 
 
+@dataclass
+class Proyeccion:
+    datos_suficientes: bool
+    anio: int | None
+    mes: int | None
+    monto: Decimal | None
+
+
+@dataclass
+class MesAnomalo:
+    anio: int
+    mes: int
+    monto: Decimal
+    promedio_otros_meses: Decimal
+    porcentaje_sobre_promedio: int
+
+
+@dataclass
+class Anomalias:
+    datos_suficientes: bool
+    meses: list[MesAnomalo]
+
+
 def nombre_mes(mes: int) -> str:
     return MESES_ES[mes - 1]
 
@@ -55,6 +81,12 @@ def mes_anterior(anio: int, mes: int) -> tuple[int, int]:
     if mes == 1:
         return anio - 1, 12
     return anio, mes - 1
+
+
+def mes_siguiente(anio: int, mes: int) -> tuple[int, int]:
+    if mes == 12:
+        return anio + 1, 1
+    return anio, mes + 1
 
 
 def totales(movimientos: list[MovimientoAnalisis]) -> tuple[Decimal, Decimal, Decimal]:
@@ -174,5 +206,23 @@ def alertas(movimientos: list[MovimientoAnalisis], anio: int, mes: int) -> list[
                     promedio=promedio,
                 )
             )
+
+    return resultado
+
+
+def proyeccion_gasto(
+    movimientos: list[MovimientoAnalisis], anio: int, mes: int, cantidad: int = 6
+) -> Proyeccion:
+    raise NotImplementedError
+
+
+def detectar_anomalias(
+    movimientos: list[MovimientoAnalisis],
+    anio: int,
+    mes: int,
+    cantidad: int = 6,
+    contaminacion: float = CONTAMINACION_ANOMALIAS,
+) -> Anomalias:
+    raise NotImplementedError
 
     return resultado

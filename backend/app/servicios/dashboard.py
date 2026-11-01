@@ -4,18 +4,23 @@ from sqlalchemy.orm import Session
 
 from app.esquemas.dashboard import (
     AlertaSalida,
+    AnomaliasSalida,
     CategoriaDistribucionSalida,
     DashboardSalida,
+    MesAnomaloSalida,
+    ProyeccionSalida,
     PuntoEvolucionSalida,
     TotalMesSalida,
 )
 from app.modelos.usuario import Usuario
 from app.servicios.analisis import (
     alertas as calcular_alertas,
+    detectar_anomalias,
     distribucion_por_categoria,
     evolucion as calcular_evolucion,
     mes_anterior,
     nombre_mes,
+    proyeccion_gasto,
     texto_variacion,
     totales,
 )
@@ -66,6 +71,8 @@ def obtener_dashboard(
     evolucion_puntos = calcular_evolucion(movimientos, anio, mes_num, CANTIDAD_MESES_EVOLUCION)
     distribucion = distribucion_por_categoria(movimientos, anio, mes_num)
     lista_alertas = calcular_alertas(movimientos, anio, mes_num)
+    proyeccion = proyeccion_gasto(movimientos, anio, mes_num, CANTIDAD_MESES_EVOLUCION)
+    anomalias = detectar_anomalias(movimientos, anio, mes_num, CANTIDAD_MESES_EVOLUCION)
 
     hay_movimientos = any(m.fecha.year == anio and m.fecha.month == mes_num for m in movimientos)
 
@@ -101,5 +108,24 @@ def obtener_dashboard(
             )
             for a in lista_alertas
         ],
+        proyeccion=ProyeccionSalida(
+            datos_suficientes=proyeccion.datos_suficientes,
+            anio=proyeccion.anio,
+            mes=proyeccion.mes,
+            monto=proyeccion.monto,
+        ),
+        anomalias=AnomaliasSalida(
+            datos_suficientes=anomalias.datos_suficientes,
+            meses=[
+                MesAnomaloSalida(
+                    anio=m.anio,
+                    mes=m.mes,
+                    monto=m.monto,
+                    promedio_otros_meses=m.promedio_otros_meses,
+                    porcentaje_sobre_promedio=m.porcentaje_sobre_promedio,
+                )
+                for m in anomalias.meses
+            ],
+        ),
         hay_movimientos=hay_movimientos,
     )

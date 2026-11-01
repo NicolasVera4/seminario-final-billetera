@@ -87,6 +87,61 @@ def test_mes_por_defecto_es_el_actual(cliente, reloj):
     assert cuerpo["mes"] == reloj.ahora().month
 
 
+def test_hu12_ca1_proyeccion_en_la_respuesta_del_dashboard(cliente, sesion_bd):
+    token = registrar_y_loguear(cliente)
+    usuario_id = id_usuario(sesion_bd)
+    for mes, monto in [(4, "500000"), (5, "510000"), (6, "520000"), (7, "530000"), (8, "540000"), (9, "550000")]:
+        crear_movimiento(sesion_bd, usuario_id, monto=monto, fecha=date(2026, mes, 15))
+
+    respuesta = cliente.get("/api/dashboard", params={"mes": "2026-09"}, headers=auth(token))
+
+    proyeccion = respuesta.json()["proyeccion"]
+    assert proyeccion["datos_suficientes"] is True
+    assert (proyeccion["anio"], proyeccion["mes"]) == (2026, 10)
+    assert float(proyeccion["monto"]) > 550000
+
+
+def test_hu12_ca2_proyeccion_datos_insuficientes_con_menos_de_3_meses(cliente, sesion_bd):
+    token = registrar_y_loguear(cliente)
+    usuario_id = id_usuario(sesion_bd)
+    crear_movimiento(sesion_bd, usuario_id, monto="500000", fecha=date(2026, 9, 10))
+
+    respuesta = cliente.get("/api/dashboard", params={"mes": "2026-09"}, headers=auth(token))
+
+    proyeccion = respuesta.json()["proyeccion"]
+    assert proyeccion["datos_suficientes"] is False
+    assert proyeccion["monto"] is None
+
+
+def test_hu13_ca1_meses_anomalos_en_la_respuesta_del_dashboard(cliente, sesion_bd):
+    token = registrar_y_loguear(cliente)
+    usuario_id = id_usuario(sesion_bd)
+    montos_por_mes = {4: "500000", 5: "505000", 6: "495000", 7: "1000000", 8: "510000", 9: "495000"}
+    for mes, monto in montos_por_mes.items():
+        crear_movimiento(sesion_bd, usuario_id, monto=monto, fecha=date(2026, mes, 15))
+
+    respuesta = cliente.get("/api/dashboard", params={"mes": "2026-09"}, headers=auth(token))
+
+    anomalias = respuesta.json()["anomalias"]
+    assert anomalias["datos_suficientes"] is True
+    assert len(anomalias["meses"]) == 1
+    assert (anomalias["meses"][0]["anio"], anomalias["meses"][0]["mes"]) == (2026, 7)
+    assert anomalias["meses"][0]["monto"] == "1000000.00"
+
+
+def test_hu13_ca2_anomalias_datos_insuficientes_con_menos_de_4_meses(cliente, sesion_bd):
+    token = registrar_y_loguear(cliente)
+    usuario_id = id_usuario(sesion_bd)
+    for mes, monto in [(7, "500000"), (8, "510000"), (9, "520000")]:
+        crear_movimiento(sesion_bd, usuario_id, monto=monto, fecha=date(2026, mes, 15))
+
+    respuesta = cliente.get("/api/dashboard", params={"mes": "2026-09"}, headers=auth(token))
+
+    anomalias = respuesta.json()["anomalias"]
+    assert anomalias["datos_suficientes"] is False
+    assert anomalias["meses"] == []
+
+
 def test_aislamiento_por_usuario(cliente, sesion_bd):
     token_a = registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
     usuario_a_id = id_usuario(sesion_bd, "a@mail.com")

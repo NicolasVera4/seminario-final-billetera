@@ -31,6 +31,13 @@ function dashboardRespuesta(overrides = {}) {
         promedio: 60800,
       },
     ],
+    proyeccion: { datos_suficientes: true, anio: 2026, mes: 10, monto: 640000 },
+    anomalias: {
+      datos_suficientes: true,
+      meses: [
+        { anio: 2026, mes: 7, monto: 820000, promedio_otros_meses: 586000, porcentaje_sobre_promedio: 40 },
+      ],
+    },
     hay_movimientos: true,
     ...overrides,
   }
@@ -112,6 +119,68 @@ describe('Dashboard', () => {
 
     await screen.findByText('Flujo mensual')
     expect(screen.queryByText(/por encima de lo habitual/)).not.toBeInTheDocument()
+  })
+
+  it('hu12_ca1 muestra la proyección de gasto del próximo mes', async () => {
+    servidor.use(http.get('/api/dashboard', () => HttpResponse.json(dashboardRespuesta())))
+    renderizar()
+
+    expect(await screen.findByText('Proyección de gasto')).toBeInTheDocument()
+    expect(screen.getByText('$640.000,00')).toBeInTheDocument()
+  })
+
+  it('hu12_ca2 indica que no hay datos suficientes para proyectar el gasto', async () => {
+    servidor.use(
+      http.get('/api/dashboard', () =>
+        HttpResponse.json(
+          dashboardRespuesta({ proyeccion: { datos_suficientes: false, anio: null, mes: null, monto: null } }),
+        ),
+      ),
+    )
+    renderizar()
+
+    expect(
+      await screen.findByText('Todavía no hay suficiente historial para proyectar el gasto del próximo mes.'),
+    ).toBeInTheDocument()
+  })
+
+  it('hu12_ca3 diferencia la proyección de los meses de gasto real', async () => {
+    servidor.use(http.get('/api/dashboard', () => HttpResponse.json(dashboardRespuesta())))
+    renderizar()
+
+    await screen.findByText('Proyección de gasto')
+    expect(screen.getByText('Gasto real')).toBeInTheDocument()
+    expect(screen.getByText('Proyección')).toBeInTheDocument()
+  })
+
+  it('hu13_ca1 muestra los meses con gasto anómalo detectados', async () => {
+    servidor.use(http.get('/api/dashboard', () => HttpResponse.json(dashboardRespuesta())))
+    renderizar()
+
+    expect(await screen.findByText('Meses con gasto anómalo')).toBeInTheDocument()
+    expect(screen.getByText('1 mes')).toBeInTheDocument()
+  })
+
+  it('hu13_ca2 indica que no hay datos suficientes para detectar anomalías', async () => {
+    servidor.use(
+      http.get('/api/dashboard', () =>
+        HttpResponse.json(dashboardRespuesta({ anomalias: { datos_suficientes: false, meses: [] } })),
+      ),
+    )
+    renderizar()
+
+    expect(
+      await screen.findByText('Todavía no hay suficiente historial para detectar meses anómalos.'),
+    ).toBeInTheDocument()
+  })
+
+  it('hu13_ca3 muestra el mes anómalo con su monto y porcentaje', async () => {
+    servidor.use(http.get('/api/dashboard', () => HttpResponse.json(dashboardRespuesta())))
+    renderizar()
+
+    expect(
+      await screen.findByText('Julio 2026 · $820.000,00 · 40% más que el promedio de los otros meses'),
+    ).toBeInTheDocument()
   })
 
   it('cambiar el mes vuelve a pedir el dashboard de ese mes', async () => {

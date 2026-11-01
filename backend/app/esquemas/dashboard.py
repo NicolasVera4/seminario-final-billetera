@@ -30,6 +30,26 @@ class AlertaSalida(BaseModel):
     promedio: Decimal
 
 
+class ProyeccionSalida(BaseModel):
+    datos_suficientes: bool
+    anio: int | None = None
+    mes: int | None = None
+    monto: Decimal | None = None
+
+
+class MesAnomaloSalida(BaseModel):
+    anio: int
+    mes: int
+    monto: Decimal
+    promedio_otros_meses: Decimal
+    porcentaje_sobre_promedio: int
+
+
+class AnomaliasSalida(BaseModel):
+    datos_suficientes: bool
+    meses: list[MesAnomaloSalida]
+
+
 class DashboardSalida(BaseModel):
     anio: int
     mes: int
@@ -39,4 +59,6 @@ class DashboardSalida(BaseModel):
     evolucion: list[PuntoEvolucionSalida]
     distribucion_categorias: list[CategoriaDistribucionSalida]
     alertas: list[AlertaSalida]
+    proyeccion: ProyeccionSalida
+    anomalias: AnomaliasSalida
     hay_movimientos: bool
