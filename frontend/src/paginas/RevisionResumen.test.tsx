@@ -134,6 +134,7 @@ describe('RevisionResumen', () => {
     renderizar()
     const usuario = userEvent.setup()
 
+    await screen.findByRole('option', { name: 'Restaurantes' })
     await usuario.selectOptions(screen.getByLabelText('Categoría de Club Atlético cuota social'), 'Restaurantes')
 
     expect(screen.getByRole('button', { name: /Guardar \d+ movimientos/ })).toBeEnabled()
@@ -150,6 +151,7 @@ describe('RevisionResumen', () => {
     renderizar()
     const usuario = userEvent.setup()
 
+    await screen.findByRole('option', { name: 'Restaurantes' })
     await usuario.selectOptions(screen.getByLabelText('Categoría de Club Atlético cuota social'), 'Restaurantes')
     await usuario.click(screen.getByRole('button', { name: /Guardar \d+ movimientos/ }))
 

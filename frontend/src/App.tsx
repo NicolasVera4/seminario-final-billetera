@@ -7,6 +7,7 @@ import Dashboard from './paginas/Dashboard'
 import Historial from './paginas/Historial'
 import Login from './paginas/Login'
 import Registro from './paginas/Registro'
+import RevisionResumen from './paginas/RevisionResumen'
 
 function ManejadorSesion() {
   const navegar = useNavigate()
@@ -46,6 +47,14 @@ function App() {
           element={
             <Layout>
               <Historial />
+            </Layout>
+          }
+        />
+        <Route
+          path="/resumen"
+          element={
+            <Layout>
+              <RevisionResumen />
             </Layout>
           }
         />

@@ -1,11 +1,13 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
-import { subirComprobante } from '../api/archivos'
+import { subirComprobante, subirResumen } from '../api/archivos'
 import type { Borrador, Conversacion, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
 import { ErrorApi } from '../api/cliente'
 
 export default function Chat() {
+  const navegar = useNavigate()
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
   const [conversacionId, setConversacionId] = useState<number | null>(null)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
@@ -91,6 +93,28 @@ export default function Chat() {
     }
   }
 
+  async function manejarAdjuntarResumen(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!archivo) return
+
+    try {
+      const resultado = await subirResumen(archivo)
+      navegar('/resumen', {
+        state: {
+          nombreArchivo: archivo.name,
+          paginasLeidas: resultado.paginas_leidas,
+          archivoRef: resultado.archivo_ref,
+          comprobanteTipo: resultado.comprobante_tipo,
+          items: resultado.items,
+        },
+      })
+    } catch (error) {
+      const texto = error instanceof ErrorApi ? error.message : 'No pudimos procesar el resumen.'
+      agregarMensajeAsistente(texto)
+    }
+  }
+
   function descartarBorrador(mensajeId: number) {
     setBorradoresPorMensaje((previos) => {
       const { [mensajeId]: _descartado, ...resto } = previos
@@ -125,6 +149,8 @@ export default function Chat() {
         <form onSubmit={manejarEnvio}>
           <label htmlFor="adjuntar">Adjuntar</label>
           <input id="adjuntar" type="file" onChange={manejarAdjuntar} />
+          <label htmlFor="adjuntar-resumen">Adjuntar resumen de tarjeta</label>
+          <input id="adjuntar-resumen" type="file" onChange={manejarAdjuntarResumen} />
           <input
             placeholder="Escribí un gasto o un ingreso, o hacé una pregunta..."
             value={texto}
