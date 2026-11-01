@@ -10,7 +10,9 @@ from app.modelos.enums import RolMensaje
 from app.modelos.medio_pago import MedioPago
 from app.modelos.mensaje import Mensaje
 from app.modelos.usuario import Usuario
+from app.proveedores.embeddings import Embedder
 from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
+from app.servicios import asesoramiento as servicio_asesoramiento
 from app.servicios.reloj import Reloj
 
 MENSAJE_FALTA_MONTO = "Me falta el monto. ¿Cuánto fue?"
@@ -25,6 +27,8 @@ def procesar_mensaje(
     proveedor_llm: ProveedorLLM,
     reloj: Reloj,
     datos: ChatEntrada,
+    embedder: Embedder,
+    cliente_chroma,
 ) -> ChatSalida:
     conversacion = _obtener_o_crear_conversacion(sesion, usuario, datos)
     _guardar_mensaje(sesion, conversacion, RolMensaje.USUARIO, datos.texto)
@@ -33,6 +37,7 @@ def procesar_mensaje(
     hoy = reloj.ahora().date()
 
     borrador = None
+    fuentes = None
     try:
         interpretacion = proveedor_llm.clasificar_e_interpretar(datos.texto, hoy, catalogo)
     except ErrorInterpretacion:
@@ -62,9 +67,21 @@ def procesar_mensaje(
             texto_respuesta = MENSAJE_FALTA_MONTO
         else:
             historial = _ultimos_mensajes(sesion, conversacion, CANTIDAD_MENSAJES_HISTORIAL)
-            texto_respuesta = proveedor_llm.responder(datos.texto, None, [], historial)
+            texto_respuesta, fuentes = servicio_asesoramiento.responder_consulta(
+                sesion,
+                usuario,
+                cliente_chroma,
+                embedder,
+                proveedor_llm,
+                reloj,
+                datos.texto,
+                interpretacion.intencion,
+                historial,
+            )
 
-    mensaje_asistente = _guardar_mensaje(sesion, conversacion, RolMensaje.ASISTENTE, texto_respuesta)
+    mensaje_asistente = _guardar_mensaje(
+        sesion, conversacion, RolMensaje.ASISTENTE, texto_respuesta, fuentes
+    )
     sesion.commit()
 
     return ChatSalida(
@@ -122,8 +139,14 @@ def _obtener_o_crear_conversacion(sesion: Session, usuario: Usuario, datos: Chat
     return conversacion
 
 
-def _guardar_mensaje(sesion: Session, conversacion: Conversacion, rol: RolMensaje, contenido: str) -> Mensaje:
-    mensaje = Mensaje(conversacion_id=conversacion.id, rol=rol, contenido=contenido)
+def _guardar_mensaje(
+    sesion: Session,
+    conversacion: Conversacion,
+    rol: RolMensaje,
+    contenido: str,
+    fuentes: list[dict] | None = None,
+) -> Mensaje:
+    mensaje = Mensaje(conversacion_id=conversacion.id, rol=rol, contenido=contenido, fuentes=fuentes)
     sesion.add(mensaje)
     sesion.flush()
     sesion.refresh(mensaje)

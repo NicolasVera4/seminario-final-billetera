@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import obtener_sesion
-from app.dependencias import usuario_actual
+from app.dependencias import usuario_no_admin
 from app.esquemas.dashboard import DashboardSalida
 from app.modelos.usuario import Usuario
 from app.servicios import dashboard as servicio_dashboard
@@ -14,7 +14,7 @@ router = APIRouter(tags=["dashboard"])
 @router.get("/dashboard", response_model=DashboardSalida)
 def obtener(
     mes: str | None = None,
-    usuario: Usuario = Depends(usuario_actual),
+    usuario: Usuario = Depends(usuario_no_admin),
     sesion: Session = Depends(obtener_sesion),
     reloj: Reloj = Depends(obtener_reloj),
 ):

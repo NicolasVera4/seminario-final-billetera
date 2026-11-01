@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from app.esquemas.movimientos import Interpretacion
 from app.modelos.usuario import Usuario
@@ -141,5 +142,18 @@ def test_admin_no_puede_usar_el_chat(cliente, sesion_bd, proveedor_llm):
     proveedor_llm.respuesta_clasificar = Interpretacion(intencion="CONSULTA_DATOS", movimiento=None, faltantes=[])
 
     respuesta = cliente.post("/api/chat/mensajes", json={"texto": "hola"}, headers=auth(token_admin))
+
+    assert respuesta.status_code == 403
+
+
+def test_admin_no_puede_subir_comprobantes(cliente, sesion_bd):
+    token_admin = _token_admin(cliente, sesion_bd)
+    contenido = (Path(__file__).parent.parent / "fixtures" / "ticket_supermercado.png").read_bytes()
+
+    respuesta = cliente.post(
+        "/api/archivos/comprobante",
+        files={"archivo": ("ticket.png", contenido, "image/png")},
+        headers=auth(token_admin),
+    )
 
     assert respuesta.status_code == 403

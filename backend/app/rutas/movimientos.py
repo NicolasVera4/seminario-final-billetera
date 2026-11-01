@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import obtener_sesion
-from app.dependencias import usuario_actual
+from app.dependencias import usuario_no_admin
 from app.esquemas.movimientos import (
     HistorialSalida,
     MovimientoEntrada,
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/movimientos", tags=["movimientos"])
 @router.post("/validar", response_model=ResultadoValidacionSalida)
 def validar(
     datos: MovimientoEntrada,
-    usuario: Usuario = Depends(usuario_actual),
+    usuario: Usuario = Depends(usuario_no_admin),
     sesion: Session = Depends(obtener_sesion),
     reloj: Reloj = Depends(obtener_reloj),
 ):
@@ -32,7 +32,7 @@ def validar(
 @router.post("", response_model=list[MovimientoSalida], status_code=201)
 def guardar(
     datos: list[MovimientoEntrada],
-    usuario: Usuario = Depends(usuario_actual),
+    usuario: Usuario = Depends(usuario_no_admin),
     sesion: Session = Depends(obtener_sesion),
     reloj: Reloj = Depends(obtener_reloj),
 ):
@@ -49,7 +49,7 @@ def listar(
     q: str | None = None,
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=15, ge=1, le=100),
-    usuario: Usuario = Depends(usuario_actual),
+    usuario: Usuario = Depends(usuario_no_admin),
     sesion: Session = Depends(obtener_sesion),
 ):
     return servicio_movimientos.listar_movimientos(

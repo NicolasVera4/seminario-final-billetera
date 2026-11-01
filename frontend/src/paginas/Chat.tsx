@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
 import { subirComprobante, subirResumen } from '../api/archivos'
-import type { Borrador, Conversacion, Mensaje } from '../api/chat'
+import type { Borrador, Conversacion, Fuente, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
 import { ErrorApi } from '../api/cliente'
 
@@ -136,7 +136,9 @@ export default function Chat() {
         <ul>
           {mensajes.map((mensaje) => (
             <li key={mensaje.id}>
+              {mensaje.fuentes && <ChipsOrigen fuentes={mensaje.fuentes} />}
               <p>{mensaje.contenido}</p>
+              {mensaje.fuentes && <ListaFuentes fuentes={mensaje.fuentes} />}
               {borradoresPorMensaje[mensaje.id] && (
                 <TarjetaMovimiento
                   borrador={borradoresPorMensaje[mensaje.id]}
@@ -162,5 +164,34 @@ export default function Chat() {
         </form>
       </main>
     </div>
+  )
+}
+
+function ChipsOrigen({ fuentes }: { fuentes: Fuente[] }) {
+  const consultoMovimientos = fuentes.some((fuente) => fuente.tipo === 'movimientos')
+  const buscoDocumentacion = fuentes.some((fuente) => fuente.tipo === 'documento')
+  if (!consultoMovimientos && !buscoDocumentacion) return null
+
+  return (
+    <div>
+      {consultoMovimientos && <span>Consultó tus movimientos</span>}
+      {buscoDocumentacion && <span>Buscó en la documentación</span>}
+    </div>
+  )
+}
+
+function ListaFuentes({ fuentes }: { fuentes: Fuente[] }) {
+  if (fuentes.length === 0) return null
+
+  return (
+    <ul>
+      {fuentes.map((fuente, indice) => (
+        <li key={indice}>
+          {fuente.tipo === 'documento'
+            ? `${fuente.titulo} · fragmento ${fuente.fragmento}`
+            : `Tus movimientos de ${fuente.desde} a ${fuente.hasta}`}
+        </li>
+      ))}
+    </ul>
   )
 }
