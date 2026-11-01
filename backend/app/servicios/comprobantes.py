@@ -13,6 +13,7 @@ from app.modelos.enums import TipoComprobante, TipoMovimiento
 from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
 from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
+from app.servicios.errores import ErrorServicio
 from app.servicios.ingesta.ocr import extraer_texto_imagen
 from app.servicios.ingesta.pdf import extraer_texto_pdf
 from app.servicios.interpretacion import obtener_catalogo, resolver_categoria, resolver_medio_pago
@@ -36,11 +37,8 @@ MENSAJE_NO_INTERPRETABLE = "No pudimos leer el comprobante. Probá cargarlo por 
 MENSAJE_MOVIMIENTO_INTERPRETADO = "Encontré este movimiento, revisalo y confirmalo."
 
 
-class ErrorComprobante(Exception):
-    def __init__(self, status_code: int, detail: str):
-        super().__init__(detail)
-        self.status_code = status_code
-        self.detail = detail
+class ErrorComprobante(ErrorServicio):
+    pass
 
 
 def _validar_formato_y_tamano(
