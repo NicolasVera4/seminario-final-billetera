@@ -1,4 +1,4 @@
-from app.proveedores.transcripcion import Transcriptor
+from app.proveedores.transcripcion import ErrorTranscripcion, Transcriptor
 
 FORMATOS_ADMITIDOS = {"audio/webm", "audio/ogg", "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"}
 TAMANO_MAXIMO_BYTES = 10 * 1024 * 1024
@@ -16,4 +16,17 @@ class ErrorAudio(Exception):
 
 
 def transcribir_audio(transcriptor: Transcriptor, contenido: bytes, content_type: str) -> str:
-    raise NotImplementedError
+    if content_type not in FORMATOS_ADMITIDOS:
+        raise ErrorAudio(415, MENSAJE_FORMATO)
+    if len(contenido) > TAMANO_MAXIMO_BYTES:
+        raise ErrorAudio(413, MENSAJE_TAMANO)
+
+    try:
+        texto = transcriptor.transcribir(contenido)
+    except ErrorTranscripcion:
+        raise ErrorAudio(422, MENSAJE_NO_TRANSCRIBIBLE)
+
+    if not texto or not texto.strip():
+        raise ErrorAudio(422, MENSAJE_NO_TRANSCRIBIBLE)
+
+    return texto.strip()

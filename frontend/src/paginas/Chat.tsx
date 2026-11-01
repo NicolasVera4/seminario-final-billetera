@@ -1,10 +1,13 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
 import { subirComprobante, subirResumen } from '../api/archivos'
 import type { Borrador, Conversacion, Fuente, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
 import { ErrorApi } from '../api/cliente'
+import { transcribirAudio } from '../api/voz'
+
+const MENSAJE_ERROR_TRANSCRIPCION = 'No pudimos transcribir el audio. Probá grabarlo de nuevo o escribí el mensaje.'
 
 export default function Chat() {
   const navegar = useNavigate()
@@ -14,6 +17,9 @@ export default function Chat() {
   const [borradoresPorMensaje, setBorradoresPorMensaje] = useState<Record<number, Borrador>>({})
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [grabando, setGrabando] = useState(false)
+  const [vieneDeAudio, setVieneDeAudio] = useState(false)
+  const grabadorRef = useRef<MediaRecorder | null>(null)
 
   function actualizarConversaciones() {
     listarConversaciones()
@@ -37,7 +43,9 @@ export default function Chat() {
     const textoEnviado = texto.trim()
     if (!textoEnviado) return
 
+    const transcripto = vieneDeAudio
     setTexto('')
+    setVieneDeAudio(false)
     setEnviando(true)
     setMensajes((previos) => [
       ...previos,
@@ -47,6 +55,7 @@ export default function Chat() {
         contenido: textoEnviado,
         fuentes: null,
         creado_en: new Date().toISOString(),
+        transcripto,
       },
     ])
 
@@ -115,6 +124,35 @@ export default function Chat() {
     }
   }
 
+  async function manejarMicrofono() {
+    if (grabando) {
+      grabadorRef.current?.stop()
+      return
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const grabador = new MediaRecorder(stream)
+    const partes: BlobPart[] = []
+    grabador.ondataavailable = (evento) => partes.push(evento.data)
+    grabador.onstop = async () => {
+      stream.getTracks().forEach((pista) => pista.stop())
+      setGrabando(false)
+
+      try {
+        const resultado = await transcribirAudio(new Blob(partes, { type: 'audio/webm' }))
+        setTexto(resultado.texto)
+        setVieneDeAudio(true)
+      } catch (error) {
+        const mensajeError = error instanceof ErrorApi ? error.message : MENSAJE_ERROR_TRANSCRIPCION
+        agregarMensajeAsistente(mensajeError)
+      }
+    }
+
+    grabadorRef.current = grabador
+    grabador.start()
+    setGrabando(true)
+  }
+
   function descartarBorrador(mensajeId: number) {
     setBorradoresPorMensaje((previos) => {
       const { [mensajeId]: _descartado, ...resto } = previos
@@ -138,6 +176,7 @@ export default function Chat() {
             <li key={mensaje.id}>
               {mensaje.fuentes && <ChipsOrigen fuentes={mensaje.fuentes} />}
               <p>{mensaje.contenido}</p>
+              {mensaje.transcripto && <span>Transcripto de un audio</span>}
               {mensaje.fuentes && <ListaFuentes fuentes={mensaje.fuentes} />}
               {borradoresPorMensaje[mensaje.id] && (
                 <TarjetaMovimiento
@@ -158,6 +197,9 @@ export default function Chat() {
             value={texto}
             onChange={(evento) => setTexto(evento.target.value)}
           />
+          <button type="button" onClick={manejarMicrofono}>
+            {grabando ? 'Detener grabación' : 'Grabar audio'}
+          </button>
           <button type="submit" disabled={enviando}>
             Enviar
           </button>

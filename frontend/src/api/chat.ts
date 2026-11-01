@@ -27,6 +27,8 @@ export interface Mensaje {
   contenido: string
   fuentes: Fuente[] | null
   creado_en: string
+  /** Solo local: no lo persiste el backend (POST /voz/transcribir no registra nada). */
+  transcripto?: boolean
 }
 
 export interface Borrador {
