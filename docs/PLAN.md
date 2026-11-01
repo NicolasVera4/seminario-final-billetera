@@ -66,10 +66,12 @@ Tests mínimos:
 
 **Extra sumado en esta fase (no estaba agendado en ningún lado):** `PATCH /admin/usuarios/{id}` (desbloquear, editar, dar de baja), del TRD §4, que no tenía fase asignada.
 
-## Fase 9 — Proyección y anomalías (HU-12, HU-13)
+## Fase 9 — Proyección y anomalías (HU-12, HU-13) ✅
 - Tests con series sintéticas: tendencia creciente, umbrales de 3 y 4 meses, outlier evidente marcado y meses normales no marcados.
 - Frontend: los dos gráficos inferiores de la Figura 11.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
+
+**Ajuste encontrado y documentado en el TRD:** con 4 a 6 puntos, `IsolationForest` marca casi siempre el mes más alejado del resto aunque la diferencia sea mínima; se agregó una confirmación de que el mes se aparte 30% o más del promedio de los otros meses antes de reportarlo como anómalo (ver `docs/TRD.md` sección 9, `[AJUSTE]`).
 
 ## Fase 10 — Voz (HU-11)
 - `Transcriptor` + `FakeTranscriptor` + `TranscriptorWhisper`.
