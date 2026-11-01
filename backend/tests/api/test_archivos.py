@@ -37,7 +37,7 @@ def test_hu05_ca1_imagen_se_interpreta_como_un_unico_movimiento_para_confirmar(c
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["borrador"]["monto"] == "15000.00"
+    assert Decimal(cuerpo["borrador"]["monto"]) == Decimal("15000")
     assert cuerpo["borrador"]["descripcion"] == "Compra en el súper"
     assert cuerpo["archivo_ref"]
     assert len(proveedor_llm.llamadas_extraer) == 1
@@ -50,7 +50,7 @@ def test_hu05_ca1_pdf_con_texto_se_interpreta_como_un_unico_movimiento(cliente, 
     respuesta = _subir(cliente, token, "factura_servicio.pdf", "application/pdf")
 
     assert respuesta.status_code == 200
-    assert respuesta.json()["borrador"]["monto"] == "15000.00"
+    assert Decimal(respuesta.json()["borrador"]["monto"]) == Decimal("15000")
     texto_recibido = proveedor_llm.llamadas_extraer[0]["texto_documento"]
     assert "FACTURA" in texto_recibido.upper()
 

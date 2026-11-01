@@ -49,6 +49,23 @@ def _construir_prompt_interpretacion(texto: str, hoy: date, catalogo: Catalogo) 
     )
 
 
+def _construir_prompt_extraccion(texto_documento: str, tipo: TipoComprobante, catalogo: Catalogo) -> str:
+    categorias = ", ".join(catalogo.categorias)
+    medios_pago = ", ".join(catalogo.medios_pago)
+    return (
+        "Sos un asistente que lee comprobantes de pago en español rioplatense.\n"
+        f"Tipo de documento: {tipo.value}.\n"
+        f"Categorías válidas: {categorias}.\n"
+        f"Medios de pago válidos: {medios_pago}.\n"
+        "El documento representa UN SOLO movimiento (el total del comprobante), no detalles línea por línea.\n"
+        "Respondé SOLO un JSON con esta forma exacta, sin texto adicional:\n"
+        '{"movimientos": [{"monto": numero o null, "fecha": "AAAA-MM-DD" o null, '
+        '"tipo": "INGRESO|EGRESO" o null, "medio_pago": "texto" o null, "descripcion": "texto" o null, '
+        '"categoria": "texto" o null}]}\n'
+        f"Texto extraído del documento:\n{texto_documento}"
+    )
+
+
 class ProveedorGroq:
     """Implementacion real: llama a Groq en modo JSON y reintenta una vez si la respuesta no valida."""
 
@@ -77,7 +94,15 @@ class ProveedorGroq:
     def extraer_movimientos(
         self, texto_documento: str, tipo: TipoComprobante, catalogo: Catalogo
     ) -> list[InterpretacionMovimiento]:
-        raise NotImplementedError
+        prompt = _construir_prompt_extraccion(texto_documento, tipo, catalogo)
+        for _ in range(2):
+            bruto = self._cliente_json(prompt)
+            try:
+                datos = json.loads(bruto)
+                return [InterpretacionMovimiento.model_validate(m) for m in datos["movimientos"]]
+            except (json.JSONDecodeError, ValidationError, KeyError, TypeError):
+                continue
+        raise ErrorInterpretacion
 
     def responder(
         self,

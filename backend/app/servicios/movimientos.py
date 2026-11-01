@@ -13,6 +13,7 @@ from app.esquemas.movimientos import (
     ResultadoValidacionSalida,
 )
 from app.modelos.categoria import Categoria
+from app.modelos.comprobante import Comprobante
 from app.modelos.enums import TipoMovimiento
 from app.modelos.medio_pago import MedioPago
 from app.modelos.movimiento import Movimiento
@@ -89,6 +90,15 @@ def guardar_movimientos(
 
     movimientos_creados = []
     for item in datos:
+        comprobante_id = item.comprobante_id
+        if item.archivo_ref and item.comprobante_tipo:
+            comprobante = Comprobante(
+                usuario_id=usuario.id, tipo=item.comprobante_tipo, ruta_archivo=item.archivo_ref
+            )
+            sesion.add(comprobante)
+            sesion.flush()
+            comprobante_id = comprobante.id
+
         movimiento = Movimiento(
             usuario_id=usuario.id,
             monto=item.monto,
@@ -99,7 +109,7 @@ def guardar_movimientos(
             medio_pago_id=item.medio_pago_id,
             origen_id=origenes_por_nombre[item.origen],
             conversacion_id=item.conversacion_id,
-            comprobante_id=item.comprobante_id,
+            comprobante_id=comprobante_id,
             cuota_numero=item.cuota_numero,
             cuota_total=item.cuota_total,
         )

@@ -1,7 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import TarjetaMovimiento from '../componentes/TarjetaMovimiento'
+import { subirComprobante } from '../api/archivos'
 import type { Borrador, Conversacion, Mensaje } from '../api/chat'
 import { enviarMensaje, listarConversaciones } from '../api/chat'
+import { ErrorApi } from '../api/cliente'
 
 export default function Chat() {
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
@@ -18,6 +20,15 @@ export default function Chat() {
   }
 
   useEffect(actualizarConversaciones, [])
+
+  function agregarMensajeAsistente(contenido: string): number {
+    const id = Date.now() + Math.random()
+    setMensajes((previos) => [
+      ...previos,
+      { id, rol: 'ASISTENTE', contenido, fuentes: null, creado_en: new Date().toISOString() },
+    ])
+    return id
+  }
 
   async function manejarEnvio(evento: FormEvent) {
     evento.preventDefault()
@@ -48,6 +59,35 @@ export default function Chat() {
       actualizarConversaciones()
     } finally {
       setEnviando(false)
+    }
+  }
+
+  async function manejarAdjuntar(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!archivo) return
+
+    setMensajes((previos) => [
+      ...previos,
+      {
+        id: Date.now(),
+        rol: 'USUARIO',
+        contenido: archivo.name,
+        fuentes: null,
+        creado_en: new Date().toISOString(),
+      },
+    ])
+
+    try {
+      const resultado = await subirComprobante(archivo)
+      const idMensaje = agregarMensajeAsistente(resultado.mensaje)
+      if (resultado.borrador) {
+        const borrador = resultado.borrador
+        setBorradoresPorMensaje((previos) => ({ ...previos, [idMensaje]: borrador }))
+      }
+    } catch (error) {
+      const texto = error instanceof ErrorApi ? error.message : 'No pudimos procesar el archivo.'
+      agregarMensajeAsistente(texto)
     }
   }
 
@@ -83,6 +123,8 @@ export default function Chat() {
           ))}
         </ul>
         <form onSubmit={manejarEnvio}>
+          <label htmlFor="adjuntar">Adjuntar</label>
+          <input id="adjuntar" type="file" onChange={manejarAdjuntar} />
           <input
             placeholder="Escribí un gasto o un ingreso, o hacé una pregunta..."
             value={texto}

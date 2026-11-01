@@ -140,4 +140,73 @@ describe('Chat', () => {
 
     expect(await screen.findByText('Todavía no tenés movimientos registrados.')).toBeInTheDocument()
   })
+
+  it('hu05_ca1 adjuntar un comprobante muestra el movimiento interpretado', async () => {
+    servidor.use(
+      http.post('/api/archivos/comprobante', () =>
+        HttpResponse.json({
+          borrador: {
+            monto: 15000,
+            fecha: '2026-10-31',
+            tipo: 'EGRESO',
+            descripcion: 'Compra en el súper',
+            categoria_id: 1,
+            categoria_sugerida: null,
+            medio_pago_id: 2,
+          },
+          archivo_ref: '1/abc_ticket.png',
+          comprobante_tipo: 'TICKET',
+          mensaje: 'Encontré este movimiento, revisalo y confirmalo.',
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+    const archivo = new File(['contenido'], 'ticket.png', { type: 'image/png' })
+
+    await usuario.upload(screen.getByLabelText('Adjuntar'), archivo)
+
+    expect(await screen.findByText('Encontré este movimiento, revisalo y confirmalo.')).toBeInTheDocument()
+    expect(screen.getByText('Compra en el súper')).toBeInTheDocument()
+  })
+
+  it('hu05_ca3 formato no admitido muestra el aviso de formatos', async () => {
+    servidor.use(
+      http.post('/api/archivos/comprobante', () =>
+        HttpResponse.json(
+          { detail: 'Formato no admitido. Subí una imagen (jpg, png, webp) o un PDF.' },
+          { status: 415 },
+        ),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+    const archivo = new File(['contenido'], 'notas.txt', { type: 'text/plain' })
+
+    await usuario.upload(screen.getByLabelText('Adjuntar'), archivo)
+
+    expect(
+      await screen.findByText('Formato no admitido. Subí una imagen (jpg, png, webp) o un PDF.'),
+    ).toBeInTheDocument()
+  })
+
+  it('hu05_ca4 sin monto legible avisa y sugiere cargarlo por texto', async () => {
+    servidor.use(
+      http.post('/api/archivos/comprobante', () =>
+        HttpResponse.json(
+          { detail: 'No pudimos leer un monto en el archivo. Probá cargarlo por texto.' },
+          { status: 422 },
+        ),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+    const archivo = new File(['contenido'], 'ticket.png', { type: 'image/png' })
+
+    await usuario.upload(screen.getByLabelText('Adjuntar'), archivo)
+
+    expect(
+      await screen.findByText('No pudimos leer un monto en el archivo. Probá cargarlo por texto.'),
+    ).toBeInTheDocument()
+  })
 })
