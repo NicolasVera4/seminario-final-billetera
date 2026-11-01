@@ -11,10 +11,11 @@ from app.db import obtener_sesion
 from app.main import app
 from app.proveedores.embeddings import obtener_embedder
 from app.proveedores.llm import obtener_proveedor_llm
+from app.proveedores.transcripcion import obtener_transcriptor
 from app.proveedores.vectorial import obtener_cliente_chroma
 from app.seed import cargar_catalogos
 from app.servicios.reloj import obtener_reloj
-from tests.dobles import FakeEmbedder, FakeLLM, RelojFijo
+from tests.dobles import FakeEmbedder, FakeLLM, FakeTranscriptor, RelojFijo
 
 engine_test = create_engine(settings.database_url_test)
 
@@ -60,12 +61,18 @@ def cliente_chroma():
 
 
 @pytest.fixture
-def cliente(sesion_bd, reloj, proveedor_llm, embedder, cliente_chroma):
+def transcriptor():
+    return FakeTranscriptor()
+
+
+@pytest.fixture
+def cliente(sesion_bd, reloj, proveedor_llm, embedder, cliente_chroma, transcriptor):
     app.dependency_overrides[obtener_sesion] = lambda: sesion_bd
     app.dependency_overrides[obtener_reloj] = lambda: reloj
     app.dependency_overrides[obtener_proveedor_llm] = lambda: proveedor_llm
     app.dependency_overrides[obtener_embedder] = lambda: embedder
     app.dependency_overrides[obtener_cliente_chroma] = lambda: cliente_chroma
+    app.dependency_overrides[obtener_transcriptor] = lambda: transcriptor
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

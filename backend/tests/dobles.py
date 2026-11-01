@@ -49,6 +49,20 @@ class FakeLLM:
         return self.respuesta_responder
 
 
+class FakeTranscriptor:
+    """Doble de Transcriptor: devuelve/lanza lo que el test configure y registra lo que recibio."""
+
+    def __init__(self):
+        self.llamadas: list[bytes] = []
+        self.respuesta_transcribir = "Gasté 15000 en el súper con débito"
+
+    def transcribir(self, contenido: bytes) -> str:
+        self.llamadas.append(contenido)
+        if isinstance(self.respuesta_transcribir, Exception):
+            raise self.respuesta_transcribir
+        return self.respuesta_transcribir
+
+
 class FakeEmbedder:
     """Doble de Embedder: vectores deterministas. El test puede fijar vectores
     exactos para textos puntuales (para controlar que recupere Chroma) y el

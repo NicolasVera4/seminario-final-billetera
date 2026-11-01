@@ -14,6 +14,27 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...real, useNavigate: () => navegarMock }
 })
 
+class GrabadorFalso {
+  static instancias: GrabadorFalso[] = []
+  ondataavailable: ((evento: { data: Blob }) => void) | null = null
+  onstop: (() => void) | null = null
+
+  constructor(public stream: MediaStream) {
+    GrabadorFalso.instancias.push(this)
+  }
+
+  start() {}
+
+  stop() {
+    this.ondataavailable?.({ data: new Blob(['audio']) })
+    this.onstop?.()
+  }
+}
+
+function detenerGrabacionActual() {
+  GrabadorFalso.instancias[GrabadorFalso.instancias.length - 1].stop()
+}
+
 function renderizar() {
   return render(
     <MemoryRouter>
@@ -24,6 +45,12 @@ function renderizar() {
 
 beforeEach(() => {
   guardarToken('token-valido')
+  GrabadorFalso.instancias = []
+  vi.stubGlobal('MediaRecorder', GrabadorFalso)
+  vi.stubGlobal('navigator', {
+    ...navigator,
+    mediaDevices: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [] }) },
+  })
   servidor.use(
     http.get('/api/chat/conversaciones', () => HttpResponse.json([])),
     http.get('/api/catalogos', () =>
@@ -304,5 +331,79 @@ describe('Chat', () => {
     await screen.findByText('Me falta el monto. ¿Cuánto fue?')
     expect(screen.queryByText('Consultó tus movimientos')).not.toBeInTheDocument()
     expect(screen.queryByText('Buscó en la documentación')).not.toBeInTheDocument()
+  })
+
+  it('hu11_ca1_ca2 graba un audio, lo transcribe y pone el texto editable en el campo', async () => {
+    servidor.use(
+      http.post('/api/voz/transcribir', () =>
+        HttpResponse.json({ texto: 'Gasté 15000 en el súper con débito' }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Grabar audio' }))
+    expect(screen.getByRole('button', { name: 'Detener grabación' })).toBeInTheDocument()
+    detenerGrabacionActual()
+
+    const campo = (await screen.findByPlaceholderText(
+      'Escribí un gasto o un ingreso, o hacé una pregunta...',
+    )) as HTMLInputElement
+    expect(campo.value).toBe('Gasté 15000 en el súper con débito')
+
+    await usuario.type(campo, ' el jueves')
+    expect(campo.value).toBe('Gasté 15000 en el súper con débito el jueves')
+  })
+
+  it('hu11_ca3 el texto transcripto enviado sigue el mismo flujo que uno escrito', async () => {
+    servidor.use(
+      http.post('/api/voz/transcribir', () =>
+        HttpResponse.json({ texto: 'Gasté 15000 en el súper con débito' }),
+      ),
+      http.post('/api/chat/mensajes', () =>
+        HttpResponse.json({
+          conversacion_id: 1,
+          mensaje: {
+            id: 2,
+            rol: 'ASISTENTE',
+            contenido: 'Encontré este movimiento, revisalo y confirmalo.',
+            fuentes: null,
+            creado_en: '2026-10-31T12:00:00Z',
+          },
+          borrador: null,
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Grabar audio' }))
+    detenerGrabacionActual()
+    await screen.findByDisplayValue('Gasté 15000 en el súper con débito')
+    await usuario.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    expect(await screen.findByText('Gasté 15000 en el súper con débito')).toBeInTheDocument()
+    expect(screen.getByText('Transcripto de un audio')).toBeInTheDocument()
+    expect(await screen.findByText('Encontré este movimiento, revisalo y confirmalo.')).toBeInTheDocument()
+  })
+
+  it('hu11_ca4 audio que no se puede transcribir avisa y sugiere repetirlo o escribirlo', async () => {
+    servidor.use(
+      http.post('/api/voz/transcribir', () =>
+        HttpResponse.json(
+          { detail: 'No pudimos transcribir el audio. Probá grabarlo de nuevo o escribí el mensaje.' },
+          { status: 422 },
+        ),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Grabar audio' }))
+    detenerGrabacionActual()
+
+    expect(
+      await screen.findByText('No pudimos transcribir el audio. Probá grabarlo de nuevo o escribí el mensaje.'),
+    ).toBeInTheDocument()
   })
 })
