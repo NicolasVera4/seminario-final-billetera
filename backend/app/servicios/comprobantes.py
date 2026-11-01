@@ -4,7 +4,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.esquemas.archivos import ComprobanteRespuesta
+from app.esquemas.archivos import ComprobanteRespuesta, ItemResumenSalida, ResumenRespuesta
 from app.esquemas.movimientos import BorradorMovimientoSalida
 from app.modelos.enums import TipoComprobante
 from app.modelos.usuario import Usuario
@@ -20,9 +20,11 @@ FORMATOS_ADMITIDOS = {
     "image/webp": TipoComprobante.TICKET,
     "application/pdf": TipoComprobante.FACTURA,
 }
+FORMATOS_ADMITIDOS_RESUMEN = {"application/pdf": TipoComprobante.RESUMEN_TARJETA}
 TAMANO_MAXIMO_BYTES = 10 * 1024 * 1024
 
 MENSAJE_FORMATOS = "Formato no admitido. Subí una imagen (jpg, png, webp) o un PDF."
+MENSAJE_FORMATOS_RESUMEN = "Formato no admitido. Subí el PDF del resumen de tu tarjeta."
 MENSAJE_TAMANO = "El archivo supera el tamaño máximo de 10 MB."
 MENSAJE_SIN_MONTO = "No pudimos leer un monto en el archivo. Probá cargarlo por texto."
 MENSAJE_NO_INTERPRETABLE = "No pudimos leer el comprobante. Probá cargarlo por texto."
@@ -88,6 +90,18 @@ def procesar_comprobante(
         comprobante_tipo=tipo_comprobante,
         mensaje=MENSAJE_MOVIMIENTO_INTERPRETADO,
     )
+
+
+def procesar_resumen(
+    sesion: Session,
+    usuario: Usuario,
+    proveedor_llm: ProveedorLLM,
+    reloj: Reloj,
+    contenido: bytes,
+    content_type: str,
+    nombre_archivo: str,
+) -> ResumenRespuesta:
+    raise NotImplementedError
 
 
 def _guardar_archivo(usuario_id: int, nombre_original: str, contenido: bytes) -> str:

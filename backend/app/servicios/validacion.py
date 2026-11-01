@@ -49,6 +49,16 @@ def es_posible_duplicado(
     )
 
 
+def es_posible_duplicado_lote(
+    fecha: date,
+    monto: Decimal,
+    existentes: list[tuple[date, Decimal]],
+) -> bool:
+    """Regla de duplicado para lotes (resumen/extracto, HU-06 CA5 y HU-14 CA3):
+    misma fecha y mismo monto, sin comparar descripcion (el canal cambia el texto)."""
+    raise NotImplementedError
+
+
 def validar(
     monto: Decimal | None,
     fecha: date,

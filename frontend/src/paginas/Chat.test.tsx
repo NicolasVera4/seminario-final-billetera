@@ -2,10 +2,17 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Chat from './Chat'
 import { guardarToken } from '../api/cliente'
 import { servidor } from '../test/servidor'
+
+const { navegarMock } = vi.hoisted(() => ({ navegarMock: vi.fn() }))
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const real = await importOriginal<typeof import('react-router-dom')>()
+  return { ...real, useNavigate: () => navegarMock }
+})
 
 function renderizar() {
   return render(
@@ -208,5 +215,30 @@ describe('Chat', () => {
     expect(
       await screen.findByText('No pudimos leer un monto en el archivo. Probá cargarlo por texto.'),
     ).toBeInTheDocument()
+  })
+
+  it('hu06 adjuntar un resumen de tarjeta navega a la pantalla de revisión', async () => {
+    servidor.use(
+      http.post('/api/archivos/resumen', () =>
+        HttpResponse.json({
+          items: [],
+          archivo_ref: '1/abc_resumen.pdf',
+          comprobante_tipo: 'RESUMEN_TARJETA',
+          paginas_leidas: 3,
+        }),
+      ),
+    )
+    renderizar()
+    const usuario = userEvent.setup()
+    const archivo = new File(['contenido'], 'resumen.pdf', { type: 'application/pdf' })
+
+    await usuario.upload(screen.getByLabelText('Adjuntar resumen de tarjeta'), archivo)
+
+    expect(navegarMock).toHaveBeenCalledWith(
+      '/resumen',
+      expect.objectContaining({
+        state: expect.objectContaining({ nombreArchivo: 'resumen.pdf', paginasLeidas: 3 }),
+      }),
+    )
   })
 })

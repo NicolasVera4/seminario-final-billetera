@@ -1,7 +1,12 @@
 from datetime import date
 from decimal import Decimal
 
-from app.servicios.validacion import es_posible_duplicado, normalizar_descripcion, validar_campos
+from app.servicios.validacion import (
+    es_posible_duplicado,
+    es_posible_duplicado_lote,
+    normalizar_descripcion,
+    validar_campos,
+)
 
 HOY = date(2026, 10, 31)
 CATEGORIAS_VALIDAS = {1, 2}
@@ -62,3 +67,13 @@ def test_no_es_duplicado_si_difiere_la_fecha():
     existentes = [(HOY, Decimal("15000"), "Compra en el súper")]
     otro_dia = date(2026, 10, 30)
     assert es_posible_duplicado(otro_dia, Decimal("15000"), "Compra en el súper", existentes) is False
+
+
+def test_hu06_ca5_duplicado_de_lote_misma_fecha_y_monto_sin_comparar_descripcion():
+    existentes = [(HOY, Decimal("32600"))]
+    assert es_posible_duplicado_lote(HOY, Decimal("32600"), existentes) is True
+
+
+def test_no_es_duplicado_de_lote_si_difiere_el_monto():
+    existentes = [(HOY, Decimal("32600"))]
+    assert es_posible_duplicado_lote(HOY, Decimal("999"), existentes) is False

@@ -19,6 +19,8 @@ class InterpretacionMovimiento(BaseModel):
     medio_pago: str | None = None
     descripcion: str | None = None
     categoria: str | None = None
+    cuota_numero: int | None = None
+    cuota_total: int | None = None
 
 
 class Interpretacion(BaseModel):
