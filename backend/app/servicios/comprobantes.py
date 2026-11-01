@@ -43,6 +43,16 @@ class ErrorComprobante(Exception):
         self.detail = detail
 
 
+def _validar_formato_y_tamano(
+    content_type: str, contenido: bytes, formatos_admitidos: dict[str, TipoComprobante], mensaje_formato: str
+) -> TipoComprobante:
+    if content_type not in formatos_admitidos:
+        raise ErrorComprobante(415, mensaje_formato)
+    if len(contenido) > TAMANO_MAXIMO_BYTES:
+        raise ErrorComprobante(413, MENSAJE_TAMANO)
+    return formatos_admitidos[content_type]
+
+
 def procesar_comprobante(
     sesion: Session,
     usuario: Usuario,
@@ -52,12 +62,7 @@ def procesar_comprobante(
     content_type: str,
     nombre_archivo: str,
 ) -> ComprobanteRespuesta:
-    if content_type not in FORMATOS_ADMITIDOS:
-        raise ErrorComprobante(415, MENSAJE_FORMATOS)
-    if len(contenido) > TAMANO_MAXIMO_BYTES:
-        raise ErrorComprobante(413, MENSAJE_TAMANO)
-
-    tipo_comprobante = FORMATOS_ADMITIDOS[content_type]
+    tipo_comprobante = _validar_formato_y_tamano(content_type, contenido, FORMATOS_ADMITIDOS, MENSAJE_FORMATOS)
     if content_type == "application/pdf":
         texto = extraer_texto_pdf(contenido)
     else:
@@ -106,12 +111,9 @@ def procesar_resumen(
     content_type: str,
     nombre_archivo: str,
 ) -> ResumenRespuesta:
-    if content_type not in FORMATOS_ADMITIDOS_RESUMEN:
-        raise ErrorComprobante(415, MENSAJE_FORMATOS_RESUMEN)
-    if len(contenido) > TAMANO_MAXIMO_BYTES:
-        raise ErrorComprobante(413, MENSAJE_TAMANO)
-
-    tipo_comprobante = FORMATOS_ADMITIDOS_RESUMEN[content_type]
+    tipo_comprobante = _validar_formato_y_tamano(
+        content_type, contenido, FORMATOS_ADMITIDOS_RESUMEN, MENSAJE_FORMATOS_RESUMEN
+    )
     texto = extraer_texto_pdf(contenido)
     with pdfplumber.open(io.BytesIO(contenido)) as pdf:
         paginas_leidas = len(pdf.pages)
