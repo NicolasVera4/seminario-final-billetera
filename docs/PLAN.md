@@ -73,11 +73,13 @@ Tests mínimos:
 
 **Ajuste encontrado y documentado en el TRD:** con 4 a 6 puntos, `IsolationForest` marca casi siempre el mes más alejado del resto aunque la diferencia sea mínima; se agregó una confirmación de que el mes se aparte 30% o más del promedio de los otros meses antes de reportarlo como anómalo (ver `docs/TRD.md` sección 9, `[AJUSTE]`).
 
-## Fase 10 — Voz (HU-11)
+## Fase 10 — Voz (HU-11) ✅
 - `Transcriptor` + `FakeTranscriptor` + `TranscriptorWhisper`.
 - Tests: CA1–CA4; integración con `gasto.ogg`.
 - Frontend: botón de micrófono (MediaRecorder), el texto queda editable en el campo.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
+
+**Pendiente:** el test de integración (`tests/integracion/test_voz_integracion.py`) necesita que subas `tests/fixtures/audio/gasto.ogg` — se saltea solo mientras no esté.
 
 ## Fase 11 — Extracto CSV/Excel (HU-14)
 - Tests: CA1–CA4 con al menos dos formatos de encabezado distintos, filas inválidas contadas, duplicados excluidos.
