@@ -57,12 +57,14 @@ Tests mínimos:
 - Frontend: pantalla de revisión (Figura 10).
 - [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
 
-## Fase 8 — Asesoramiento con RAG (HU-10)
+## Fase 8 — Asesoramiento con RAG (HU-10) ✅
 - `Embedder` + `FakeEmbedder` (vectores deterministas) + `EmbedderOllama`; Chroma `EphemeralClient` en tests.
 - Tests: chunking, CA1–CA5, fuentes guardadas en `mensajes.fuentes`, aviso de que es orientativo, endpoints de admin (solo rol ADMINISTRADOR; el admin no puede leer movimientos).
 - Script de carga de documentos de referencia.
 - Frontend: Figura 13 con chips de fuentes.
-- [ ] Plan  - [ ] Rojo  - [ ] Verde  - [ ] Refactor  - [ ] Cierre
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
+
+**Extra sumado en esta fase (no estaba agendado en ningún lado):** `PATCH /admin/usuarios/{id}` (desbloquear, editar, dar de baja), del TRD §4, que no tenía fase asignada.
 
 ## Fase 9 — Proyección y anomalías (HU-12, HU-13)
 - Tests con series sintéticas: tendencia creciente, umbrales de 3 y 4 meses, outlier evidente marcado y meses normales no marcados.
