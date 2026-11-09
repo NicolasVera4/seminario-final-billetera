@@ -30,11 +30,13 @@ las variables ya tienen valores por defecto que funcionan en desarrollo. **Nunca
 | `DATABASE_URL` / `DATABASE_URL_TEST` | Conexión a Postgres (app y tests) |
 | `JWT_SECRETO` | Firma de los tokens de sesión |
 | `GROQ_API_KEY` | Clave de Groq (interpretación de mensajes y asesoramiento) |
+| `GROQ_API_KEY_2` | Opcional. Segunda cuenta de Groq: si la primera se queda sin tokens (límite diario), se reintenta automáticamente con esta antes de avisarle al usuario |
 | `GROQ_MODELO` | Modelo de Groq a usar (`openai/gpt-oss-120b` por defecto) |
 | `OLLAMA_URL` / `OLLAMA_MODELO_EMBEDDINGS` | Embeddings para el asesoramiento con RAG |
 | `CHROMA_URL` | Base vectorial de los documentos de referencia |
 | `WHISPER_MODELO` | Modelo de transcripción de audio (voz) |
 | `ARCHIVOS_DIR` | Dónde se guardan los comprobantes/resúmenes/extractos subidos |
+| `CORS_ORIGENES` | Orígenes permitidos para llamar a la API (el frontend en desarrollo) |
 
 ## Puesta en marcha
 
