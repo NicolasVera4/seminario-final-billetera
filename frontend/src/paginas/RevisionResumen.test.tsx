@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import RevisionResumen from './RevisionResumen'
+import { guardarToken } from '../api/cliente'
 import { servidor } from '../test/servidor'
 
 const CATALOGOS = {
@@ -22,7 +23,7 @@ const ESTADO_RESUMEN = {
   comprobanteTipo: 'RESUMEN_TARJETA',
   items: [
     {
-      monto: 4599,
+      monto: '4599.00',
       fecha: '2026-09-21',
       tipo: 'EGRESO',
       descripcion: 'Spotify',
@@ -35,7 +36,7 @@ const ESTADO_RESUMEN = {
       posible_duplicado: false,
     },
     {
-      monto: 32600,
+      monto: '32600.00',
       fecha: '2026-09-18',
       tipo: 'EGRESO',
       descripcion: 'Restaurante La Nieta',
@@ -48,7 +49,7 @@ const ESTADO_RESUMEN = {
       posible_duplicado: true,
     },
     {
-      monto: 15000,
+      monto: '15000.00',
       fecha: '2026-09-15',
       tipo: 'EGRESO',
       descripcion: 'Club Atlético cuota social',
@@ -61,7 +62,7 @@ const ESTADO_RESUMEN = {
       posible_duplicado: false,
     },
     {
-      monto: 18300,
+      monto: '18300.00',
       fecha: '2026-09-12',
       tipo: 'EGRESO',
       descripcion: 'Tienda deportiva zapatillas',
@@ -84,7 +85,7 @@ const ESTADO_EXTRACTO = {
   comprobanteTipo: 'EXTRACTO',
   items: [
     {
-      monto: 15000,
+      monto: '15000.00',
       fecha: '2026-09-01',
       tipo: 'EGRESO',
       descripcion: 'Supermercado',
@@ -104,17 +105,28 @@ function renderizar(estado = ESTADO_RESUMEN) {
     <MemoryRouter initialEntries={[{ pathname: '/resumen', state: estado }]}>
       <Routes>
         <Route path="/resumen" element={<RevisionResumen />} />
-        <Route path="/" element={<div>Pantalla de chat</div>} />
+        <Route path="/chat" element={<div>Pantalla de chat</div>} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
 beforeEach(() => {
+  guardarToken('token-valido')
   servidor.use(http.get('/api/catalogos', () => HttpResponse.json(CATALOGOS)))
 })
 
 describe('RevisionResumen', () => {
+  it('el total de los movimientos seleccionados se calcula bien (los montos llegan como string del backend)', async () => {
+    /* Bug reportado: el backend serializa los montos (Decimal) como string en el JSON. El total
+     * se calculaba con `acumulado + f.monto`, que en JS concatena strings en vez de sumar
+     * números apenas uno de los operandos es string — el resultado terminaba siendo "NaN" en
+     * vez del total real, y hacía parecer que no se podía guardar nada. */
+    renderizar()
+
+    expect(await screen.findByText('3 movimientos seleccionados · $37.899,00')).toBeInTheDocument()
+  })
+
   it('hu06_ca1 y hu06_ca2 muestra cada consumo como fila separada y las paginas leidas', async () => {
     renderizar()
 
@@ -224,5 +236,36 @@ describe('RevisionResumen', () => {
     const movimientos = cuerpoEnviado as Array<{ origen: string; comprobante_tipo: string }>
     expect(movimientos[0].origen).toBe('Extracto')
     expect(movimientos[0].comprobante_tipo).toBe('EXTRACTO')
+  })
+
+  it('al guardar, vuelve al chat (no al historial)', async () => {
+    servidor.use(http.post('/api/movimientos', () => HttpResponse.json([], { status: 201 })))
+    renderizar()
+    const usuario = userEvent.setup()
+
+    await screen.findByRole('option', { name: 'Restaurantes' })
+    await usuario.selectOptions(screen.getByLabelText('Categoría de Club Atlético cuota social'), 'Restaurantes')
+    await usuario.click(screen.getByRole('button', { name: /Guardar \d+ movimientos/ }))
+
+    expect(await screen.findByText('Pantalla de chat')).toBeInTheDocument()
+  })
+
+  it('manda el conversacion_id de la conversación que originó la subida, para que no se pierda del chat', async () => {
+    let cuerpoEnviado: unknown = null
+    servidor.use(
+      http.post('/api/movimientos', async ({ request }) => {
+        cuerpoEnviado = await request.json()
+        return HttpResponse.json([], { status: 201 })
+      }),
+    )
+    renderizar({ ...ESTADO_RESUMEN, conversacionId: 9 })
+    const usuario = userEvent.setup()
+
+    await screen.findByRole('option', { name: 'Restaurantes' })
+    await usuario.selectOptions(screen.getByLabelText('Categoría de Club Atlético cuota social'), 'Restaurantes')
+    await usuario.click(screen.getByRole('button', { name: /Guardar \d+ movimientos/ }))
+
+    const movimientos = cuerpoEnviado as Array<{ conversacion_id: number | null }>
+    expect(movimientos.every((m) => m.conversacion_id === 9)).toBe(true)
   })
 })

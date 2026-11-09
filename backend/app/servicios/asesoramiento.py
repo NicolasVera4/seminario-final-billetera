@@ -117,10 +117,16 @@ def _recuperar_fragmentos(
     )
     documentos = resultado["documents"][0] if resultado["documents"] else []
     metadatas = resultado["metadatas"][0] if resultado["metadatas"] else []
-    fuentes = [
-        {"tipo": "documento", "titulo": metadata["titulo"], "fragmento": metadata["indice_fragmento"]}
-        for metadata in metadatas
-    ]
+
+    fuentes = []
+    titulos_vistos = set()
+    for metadata in metadatas:
+        if metadata["titulo"] in titulos_vistos:
+            continue
+        titulos_vistos.add(metadata["titulo"])
+        fuentes.append(
+            {"tipo": "documento", "titulo": metadata["titulo"], "fragmento": metadata["indice_fragmento"]}
+        )
     return documentos, fuentes
 
 

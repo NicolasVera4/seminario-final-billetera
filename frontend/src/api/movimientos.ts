@@ -9,6 +9,7 @@ export interface MovimientoEntrada {
   medio_pago_id: number | null
   origen?: string
   conversacion_id?: number | null
+  mensaje_id?: number | null
 }
 
 export interface ResultadoValidacion {

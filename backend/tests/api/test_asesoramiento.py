@@ -127,6 +127,22 @@ def test_disclaimer_ausente_en_respuestas_de_consulta_de_datos(cliente, proveedo
     assert DISCLAIMER not in respuesta.json()["mensaje"]["contenido"]
 
 
+def test_un_mismo_documento_no_aparece_duplicado_en_las_fuentes(cliente, proveedor_llm, embedder, sesion_bd):
+    # Un solo documento de 1700 caracteres genera 3 fragmentos (chunking.py: 800 + solapamiento 100);
+    # al ser el unico documento cargado, los 4 fragmentos recuperados vienen todos de el.
+    _cargar_documento_admin(cliente, sesion_bd)
+    token = registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
+    proveedor_llm.respuesta_clasificar = _consulta_asesoramiento()
+
+    respuesta = cliente.post(
+        "/api/chat/mensajes", json={"texto": "¿cómo puedo ahorrar más?"}, headers=auth(token)
+    )
+
+    fuentes_documento = [f for f in respuesta.json()["mensaje"]["fuentes"] if f["tipo"] == "documento"]
+    titulos = [f["titulo"] for f in fuentes_documento]
+    assert titulos == ["Tips de ahorro"]
+
+
 def test_hu10_ca5_retomar_una_conversacion_de_asesoramiento(cliente, proveedor_llm, sesion_bd):
     token = registrar_y_loguear(cliente)
     proveedor_llm.respuesta_clasificar = _consulta_datos()

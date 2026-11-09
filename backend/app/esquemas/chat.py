@@ -9,6 +9,7 @@ from app.modelos.enums import RolMensaje
 class ChatEntrada(BaseModel):
     conversacion_id: int | None = None
     texto: str
+    transcripto: bool = False
 
 
 class MensajeSalida(BaseModel):
@@ -16,7 +17,9 @@ class MensajeSalida(BaseModel):
     rol: RolMensaje
     contenido: str
     fuentes: list | None
+    transcripto: bool = False
     creado_en: datetime
+    movimiento: BorradorMovimientoSalida | None = None
 
     model_config = {"from_attributes": True}
 

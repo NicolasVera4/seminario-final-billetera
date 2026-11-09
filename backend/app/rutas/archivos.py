@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db import obtener_sesion
 from app.dependencias import usuario_no_admin
-from app.esquemas.archivos import ComprobanteRespuesta, ExtractoRespuesta, ResumenRespuesta
+from app.esquemas.archivos import (
+    AdjuntoRespuesta,
+    ComprobanteAdjuntoRespuesta,
+    ComprobanteRespuesta,
+    ExtractoAdjuntoRespuesta,
+    ExtractoRespuesta,
+    ResumenAdjuntoRespuesta,
+    ResumenRespuesta,
+)
 from app.modelos.usuario import Usuario
 from app.proveedores.llm import ProveedorLLM, obtener_proveedor_llm
 from app.servicios import comprobantes as servicio_comprobantes
@@ -45,6 +53,38 @@ async def subir_resumen(
         )
     except ErrorComprobante as error:
         raise HTTPException(status_code=error.status_code, detail=error.detail)
+
+
+@router.post("/adjuntar", response_model=AdjuntoRespuesta)
+async def subir_adjunto(
+    archivo: UploadFile,
+    conversacion_id: int | None = Form(default=None),
+    usuario: Usuario = Depends(usuario_no_admin),
+    sesion: Session = Depends(obtener_sesion),
+    reloj: Reloj = Depends(obtener_reloj),
+    proveedor_llm: ProveedorLLM = Depends(obtener_proveedor_llm),
+):
+    contenido = await archivo.read()
+    try:
+        modo, resultado, conv_id, mensaje_id = servicio_comprobantes.procesar_adjunto(
+            sesion,
+            usuario,
+            proveedor_llm,
+            reloj,
+            contenido,
+            archivo.content_type,
+            archivo.filename,
+            conversacion_id,
+        )
+    except ErrorComprobante as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail)
+
+    extra = {"conversacion_id": conv_id, "mensaje_id": mensaje_id}
+    if modo == "COMPROBANTE":
+        return ComprobanteAdjuntoRespuesta(**resultado.model_dump(), **extra)
+    if modo == "RESUMEN":
+        return ResumenAdjuntoRespuesta(**resultado.model_dump(), **extra)
+    return ExtractoAdjuntoRespuesta(**resultado.model_dump(), **extra)
 
 
 @router.post("/extracto", response_model=ExtractoRespuesta)

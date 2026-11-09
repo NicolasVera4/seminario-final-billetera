@@ -1,7 +1,19 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.esquemas.admin import AdminUsuarioEntrada
+from app.modelos.enums import RolUsuario
 from app.modelos.usuario import Usuario
+
+
+def listar_usuarios(sesion: Session) -> list[Usuario]:
+    """Solo cuentas de usuario, nunca otros administradores (PRD: el admin gestiona perfiles de
+    usuario, no es un listado general de cuentas del sistema)."""
+    return list(
+        sesion.execute(
+            select(Usuario).where(Usuario.rol == RolUsuario.USUARIO).order_by(Usuario.nombre)
+        ).scalars()
+    )
 
 
 def editar_usuario(sesion: Session, usuario_id: int, datos: AdminUsuarioEntrada) -> Usuario | None:

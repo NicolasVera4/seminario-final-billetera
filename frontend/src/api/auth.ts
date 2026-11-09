@@ -40,3 +40,7 @@ export async function iniciarSesion(datos: LoginEntrada): Promise<TokenSalida> {
   guardarToken(resultado.access_token)
   return resultado
 }
+
+export function obtenerUsuarioActual(): Promise<UsuarioSalida> {
+  return solicitar<UsuarioSalida>('/auth/yo')
+}

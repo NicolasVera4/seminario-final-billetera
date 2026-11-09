@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 from app.db import obtener_sesion
 from app.dependencias import usuario_no_admin
 from app.esquemas.chat import ChatEntrada, ChatSalida, ConversacionSalida, MensajeSalida
+from app.esquemas.movimientos import BorradorMovimientoSalida
 from app.modelos.conversacion import Conversacion
 from app.modelos.mensaje import Mensaje
+from app.modelos.movimiento import Movimiento
 from app.modelos.usuario import Usuario
 from app.proveedores.embeddings import Embedder, obtener_embedder
 from app.proveedores.llm import ProveedorLLM, obtener_proveedor_llm
@@ -58,4 +60,36 @@ def obtener_conversacion(
     mensajes = sesion.execute(
         select(Mensaje).where(Mensaje.conversacion_id == conversacion_id).order_by(Mensaje.creado_en)
     ).scalars().all()
-    return mensajes
+
+    movimientos_por_mensaje = {
+        movimiento.mensaje_id: movimiento
+        for movimiento in sesion.execute(
+            select(Movimiento).where(Movimiento.mensaje_id.in_([m.id for m in mensajes]))
+        ).scalars().all()
+    }
+
+    salida = []
+    for mensaje in mensajes:
+        movimiento = movimientos_por_mensaje.get(mensaje.id)
+        salida.append(
+            MensajeSalida(
+                id=mensaje.id,
+                rol=mensaje.rol,
+                contenido=mensaje.contenido,
+                fuentes=mensaje.fuentes,
+                transcripto=mensaje.transcripto,
+                creado_en=mensaje.creado_en,
+                movimiento=BorradorMovimientoSalida(
+                    monto=movimiento.monto,
+                    fecha=movimiento.fecha,
+                    tipo=movimiento.tipo,
+                    descripcion=movimiento.descripcion,
+                    categoria_id=movimiento.categoria_id,
+                    categoria_sugerida=movimiento.categoria_sugerida,
+                    medio_pago_id=movimiento.medio_pago_id,
+                )
+                if movimiento
+                else None,
+            )
+        )
+    return salida

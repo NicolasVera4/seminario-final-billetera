@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.esquemas.movimientos import CategoriaMedioPagoFila
+
 
 class RelojFijo:
     """Doble de Reloj: devuelve un instante fijo que el test controla y puede avanzar."""
@@ -26,12 +28,19 @@ class FakeLLM:
         self.llamadas_responder = []
         self.llamadas_detectar_columnas = []
         self.respuesta_detectar_columnas = None
+        self.llamadas_categorizar_filas = []
+        self.respuesta_categorizar_filas = None
 
-    def clasificar_e_interpretar(self, texto, hoy, catalogo):
-        self.llamadas_clasificar.append({"texto": texto, "hoy": hoy, "catalogo": catalogo})
-        if isinstance(self.respuesta_clasificar, Exception):
-            raise self.respuesta_clasificar
-        return self.respuesta_clasificar
+    def clasificar_e_interpretar(self, texto, hoy, catalogo, historial=None):
+        self.llamadas_clasificar.append(
+            {"texto": texto, "hoy": hoy, "catalogo": catalogo, "historial": historial or []}
+        )
+        respuesta = self.respuesta_clasificar
+        if isinstance(respuesta, list):
+            respuesta = respuesta[len(self.llamadas_clasificar) - 1]
+        if isinstance(respuesta, Exception):
+            raise respuesta
+        return respuesta
 
     def extraer_movimientos(self, texto_documento, tipo, catalogo):
         self.llamadas_extraer.append({"texto_documento": texto_documento, "tipo": tipo, "catalogo": catalogo})
@@ -55,6 +64,14 @@ class FakeLLM:
         if isinstance(self.respuesta_detectar_columnas, Exception):
             raise self.respuesta_detectar_columnas
         return self.respuesta_detectar_columnas
+
+    def categorizar_filas(self, descripciones, catalogo):
+        self.llamadas_categorizar_filas.append({"descripciones": descripciones, "catalogo": catalogo})
+        if isinstance(self.respuesta_categorizar_filas, Exception):
+            raise self.respuesta_categorizar_filas
+        if self.respuesta_categorizar_filas is None:
+            return [CategoriaMedioPagoFila() for _ in descripciones]
+        return self.respuesta_categorizar_filas
 
 
 class FakeTranscriptor:

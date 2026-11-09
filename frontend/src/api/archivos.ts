@@ -18,7 +18,10 @@ export function subirComprobante(archivo: File): Promise<ComprobanteRespuesta> {
 }
 
 export interface ItemResumen {
-  monto: number
+  /** Como todo monto que devuelve el backend (Decimal -> string en el JSON). Nunca sumar/restar
+   * sin pasar por Number(...) primero: con `+` entre number y string, JS concatena en vez de
+   * sumar. */
+  monto: string
   fecha: string
   tipo: 'INGRESO' | 'EGRESO'
   descripcion: string
@@ -57,6 +60,28 @@ export function subirExtracto(archivo: File): Promise<ExtractoRespuesta> {
   const formData = new FormData()
   formData.append('archivo', archivo)
   return solicitar<ExtractoRespuesta>('/archivos/extracto', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+interface IdsConversacion {
+  conversacion_id: number
+  mensaje_id: number
+}
+
+export type AdjuntoRespuesta =
+  | ({ modo: 'COMPROBANTE' } & ComprobanteRespuesta & IdsConversacion)
+  | ({ modo: 'RESUMEN' } & ResumenRespuesta & IdsConversacion)
+  | ({ modo: 'EXTRACTO' } & ExtractoRespuesta & IdsConversacion)
+
+export function subirAdjunto(archivo: File, conversacionId: number | null): Promise<AdjuntoRespuesta> {
+  const formData = new FormData()
+  formData.append('archivo', archivo)
+  if (conversacionId != null) {
+    formData.append('conversacion_id', String(conversacionId))
+  }
+  return solicitar<AdjuntoRespuesta>('/archivos/adjuntar', {
     method: 'POST',
     body: formData,
   })

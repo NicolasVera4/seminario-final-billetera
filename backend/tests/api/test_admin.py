@@ -121,6 +121,42 @@ def test_editar_usuario_requiere_rol_administrador(cliente):
     assert respuesta.status_code == 403
 
 
+def test_listar_usuarios_requiere_rol_administrador(cliente):
+    token = registrar_y_loguear(cliente)
+
+    respuesta = cliente.get("/api/admin/usuarios", headers=auth(token))
+
+    assert respuesta.status_code == 403
+
+
+def test_admin_lista_los_usuarios(cliente, sesion_bd):
+    token_admin = _token_admin(cliente, sesion_bd)
+    registrar_y_loguear(cliente, nombre="Usuaria A", correo="a@mail.com")
+    registrar_y_loguear(cliente, nombre="Usuario B", correo="b@mail.com")
+
+    respuesta = cliente.get("/api/admin/usuarios", headers=auth(token_admin))
+
+    assert respuesta.status_code == 200
+    correos = {u["correo"] for u in respuesta.json()}
+    assert correos == {"a@mail.com", "b@mail.com"}
+    usuario_a = next(u for u in respuesta.json() if u["correo"] == "a@mail.com")
+    assert usuario_a["nombre"] == "Usuaria A"
+    assert usuario_a["activo"] is True
+    assert usuario_a["bloqueado_hasta"] is None
+
+
+def test_listar_usuarios_no_incluye_a_otros_administradores(cliente, sesion_bd):
+    token_admin = _token_admin(cliente, sesion_bd)
+    registrar_y_loguear(cliente, nombre="Admin Dos", correo="admin2@mail.com")
+    promover_a_administrador(sesion_bd, "admin2@mail.com")
+
+    respuesta = cliente.get("/api/admin/usuarios", headers=auth(token_admin))
+
+    correos = {u["correo"] for u in respuesta.json()}
+    assert "admin2@mail.com" not in correos
+    assert "admin@mail.com" not in correos
+
+
 def test_admin_no_puede_ver_movimientos(cliente, sesion_bd):
     token_admin = _token_admin(cliente, sesion_bd)
 

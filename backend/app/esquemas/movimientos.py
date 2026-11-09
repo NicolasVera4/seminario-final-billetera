@@ -29,6 +29,11 @@ class ColumnasDetectadas(BaseModel):
     descripcion: str | None = None
 
 
+class CategoriaMedioPagoFila(BaseModel):
+    categoria: str | None = None
+    medio_pago: str | None = None
+
+
 class Interpretacion(BaseModel):
     intencion: Literal["REGISTRO", "CONSULTA_DATOS", "CONSULTA_ASESORAMIENTO"]
     movimiento: InterpretacionMovimiento | None = None
@@ -67,6 +72,7 @@ class MovimientoEntrada(BaseModel):
     medio_pago_id: int | None = None
     origen: str = "Texto"
     conversacion_id: int | None = None
+    mensaje_id: int | None = None
     comprobante_id: int | None = None
     cuota_numero: int | None = None
     cuota_total: int | None = None

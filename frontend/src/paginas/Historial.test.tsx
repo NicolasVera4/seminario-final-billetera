@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import Historial from './Historial'
+import { guardarToken } from '../api/cliente'
 import { servidor } from '../test/servidor'
 
 const CATALOGOS = {
@@ -31,6 +32,7 @@ function renderizar() {
 }
 
 beforeEach(() => {
+  guardarToken('token-valido')
   servidor.use(http.get('/api/catalogos', () => HttpResponse.json(CATALOGOS)))
 })
 

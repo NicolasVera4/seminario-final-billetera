@@ -192,6 +192,44 @@ def test_resumen_escaneado_tambien_devuelve_items(cliente, proveedor_llm):
     assert respuesta.json()["paginas_leidas"] == 3
 
 
+def _generar_pdf_grande(paginas: int, lineas_por_pagina: int) -> bytes:
+    from io import BytesIO
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    lienzo = canvas.Canvas(buffer, pagesize=A4)
+    for _ in range(paginas):
+        y = 800
+        for indice in range(lineas_por_pagina):
+            lienzo.drawString(50, y, f"Consumo de prueba numero {indice} por $1.234,56 el 01/09/2026")
+            y -= 15
+            if y < 50:
+                break
+        lienzo.showPage()
+    lienzo.save()
+    return buffer.getvalue()
+
+
+def test_hu06_resumen_grande_se_divide_en_varios_llamados_al_llm_y_los_une(cliente, proveedor_llm):
+    token = registrar_y_loguear(cliente)
+    proveedor_llm.respuesta_extraer = [_movimientos_resumen()[0]]
+    contenido = _generar_pdf_grande(paginas=3, lineas_por_pagina=50)
+
+    respuesta = cliente.post(
+        "/api/archivos/resumen",
+        files={"archivo": ("resumen_grande.pdf", contenido, "application/pdf")},
+        headers=auth(token),
+    )
+
+    assert respuesta.status_code == 200
+    assert len(proveedor_llm.llamadas_extraer) > 1
+    assert len(respuesta.json()["items"]) == len(proveedor_llm.llamadas_extraer)
+    for llamada in proveedor_llm.llamadas_extraer:
+        assert len(llamada["texto_documento"]) <= 6000
+
+
 def test_resumen_solo_admite_pdf(cliente, proveedor_llm):
     token = registrar_y_loguear(cliente)
 

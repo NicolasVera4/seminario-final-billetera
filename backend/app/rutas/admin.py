@@ -49,6 +49,14 @@ def eliminar_documento(
     servicio_asesoramiento.eliminar_documento(sesion, cliente_chroma, documento_id)
 
 
+@router.get("/usuarios", response_model=list[AdminUsuarioSalida])
+def listar_usuarios(
+    _admin: Usuario = Depends(administrador_actual),
+    sesion: Session = Depends(obtener_sesion),
+):
+    return servicio_admin.listar_usuarios(sesion)
+
+
 @router.patch("/usuarios/{usuario_id}", response_model=AdminUsuarioSalida)
 def editar_usuario(
     usuario_id: int,

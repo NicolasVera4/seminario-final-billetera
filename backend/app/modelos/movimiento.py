@@ -29,6 +29,7 @@ class Movimiento(Base):
     conversacion_id: Mapped[int | None] = mapped_column(
         ForeignKey("conversaciones.id"), nullable=True
     )
+    mensaje_id: Mapped[int | None] = mapped_column(ForeignKey("mensajes.id"), nullable=True)
 
     cuota_numero: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cuota_total: Mapped[int | None] = mapped_column(Integer, nullable=True)

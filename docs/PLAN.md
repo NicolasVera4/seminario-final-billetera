@@ -66,6 +66,8 @@ Tests mínimos:
 
 **Extra sumado en esta fase (no estaba agendado en ningún lado):** `PATCH /admin/usuarios/{id}` (desbloquear, editar, dar de baja), del TRD §4, que no tenía fase asignada.
 
+**Actualización posterior (04/11/2026), a pedido del profesor:** se reemplazó el documento de referencia de ejemplo por tres fuentes reales y citables (ver `docs/TRD.md` §10, `[AJUSTE]`). Al cargarlas contra los documentos reales se encontró y corrigió un bug: `ProveedorGroq.responder` nunca incluía el texto de los fragmentos recuperados en el mensaje al modelo (pasaba por el parámetro pero no se usaba), por lo que el asesoramiento real no estaba efectivamente anclado en la documentación aunque las fuentes mostradas al usuario fueran correctas. Suite completa verificada en verde (186 tests) después del fix.
+
 ## Fase 9 — Proyección y anomalías (HU-12, HU-13) ✅
 - Tests con series sintéticas: tendencia creciente, umbrales de 3 y 4 meses, outlier evidente marcado y meses normales no marcados.
 - Frontend: los dos gráficos inferiores de la Figura 11.
@@ -87,8 +89,13 @@ Tests mínimos:
 
 **Decisiones de esta fase (no estaban especificadas en el TRD):** se asume una sola columna de monto con signo (no columnas separadas de débito/crédito); el tipo (ingreso/egreso) se infiere del signo del monto, ya que no hay columna de tipo; categoría y medio de pago quedan sin resolver (el TRD solo prevé el LLM para detectar columnas, no para clasificar cada fila) y se completan a mano en la revisión. No había mockup ni ítem de frontend agendado para esta fase, así que se reusó la pantalla de revisión del resumen de tarjeta (generalizada) en vez de crear una nueva.
 
-## Fase 12 — Cierre y demo
-- [ ] `make seed-demo`: usuario de demo con 6 meses de movimientos (incluye un mes anómalo y una categoría con alerta, como en la Figura 11).
-- [ ] README con instructivo de puesta en marcha (lo pide la consigna junto al link de la demo).
-- [ ] Correr `conjunto_oro.yaml` completo y guardar el reporte en `docs/resultados_llm.md`.
-- [ ] Suite completa en verde y reporte de cobertura.
+## Fase 12 — Cierre y demo ✅
+- [x] `make seed-demo`: usuario de demo con 6 meses de movimientos (incluye un mes anómalo y una categoría con alerta, como en la Figura 11).
+- [x] README con instructivo de puesta en marcha (lo pide la consigna junto al link de la demo).
+- [x] Correr `conjunto_oro.yaml` completo y guardar el reporte en `docs/resultados_llm.md`.
+- [x] Suite completa en verde y reporte de cobertura.
+- [x] Plan  - [x] Rojo  - [x] Verde  - [x] Refactor  - [x] Cierre
+
+**Resumen de cierre (05/11/2026):** retomada tras la respuesta del profesor a `docs/consulta_profesor_fase12.md` (datos sintéticos aceptados aclarando que son ilustrativos; RAG resuelto con 3 documentos reales). `make seed-demo` (nuevo, `app/seed_demo.py`) crea un usuario demo (`nicolas.vera@gmail.com` / `UsuarioDemo2026`) y un administrador (`nicolas.vera+admin@gmail.com` / `AdminDemo2026`), carga catálogos y los 3 documentos de referencia, y genera 6 meses de movimientos relativos a la fecha en que se ejecuta (re-ejecutable: se regeneran en cada corrida). Las cantidades están calibradas para disparar a la vez la alerta de HU-09 (Restaurantes +60%), un mes anómalo de HU-13 (compra puntual de Indumentaria) y una proyección con tendencia creciente de HU-12 — verificado con tests y contra el dashboard real. El `conjunto_oro.yaml` se completó de 10 a 30 entradas (las 20 nuevas son sintéticas, escritas para esta fase, no mensajes reales relevados) y corrió completo contra Groq real: 100% en intención/tipo/medio de pago/categoría/faltantes, 95% en monto (único error: "2 palos" interpretado como 2.000 en vez de 2.000.000 — limitación real del modelo con esa jerga, documentada tal cual en `docs/resultados_llm.md`, sin maquillarla). README nuevo en la raíz. Suite completa: 193 tests de backend + 62 de frontend, 96% de cobertura de líneas en `backend/app` (lo no cubierto son las funciones que llaman servicios reales — Groq, Ollama, Chroma, Whisper —, ejercitadas solo por los tests de integración). De paso, al cargar los documentos reales se encontró y corrigió un bug real en `ProveedorGroq.responder` (no incluía los fragmentos recuperados en el prompt real; ver `[AJUSTE]` en `TRD.md` §10). Pendiente, no de código: que Luciano aclare en el documento del TFG que los datos de la demo son ilustrativos (pedido explícito del profesor).
+
+**Corrección (09/11/2026):** "6 meses relativos a la fecha en que se ejecuta" se cambió a un límite fijo (31/10/2026) — pedido para el ensayo de la demo: si se regeneraba el mismo día de la demo, el mes más reciente de los datos de prueba coincidía con el mes real, y cualquier movimiento cargado en vivo se mezclaba con los sintéticos. Además, tras un primer ensayo real que dejó conversaciones de chat cargadas, `make seed-demo` ahora también las borra (antes solo limpiaba movimientos) — así que volver a correrlo deja la cuenta demo completamente limpia. Ver `[AJUSTE]` correspondiente en `TRD.md`.

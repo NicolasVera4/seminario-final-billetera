@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { registrar } from '../api/auth'
 import { ErrorApi } from '../api/cliente'
+import { IconoAlerta, IconoLogo } from '../componentes/iconos'
 
 const OBLIGATORIO = 'Este campo es obligatorio.'
 const CORREO_EXISTE = 'Ya existe una cuenta con este correo. Iniciá sesión o usá otro correo.'
@@ -59,48 +60,121 @@ export default function Registro() {
   }
 
   return (
-    <div>
-      <h1>Crear cuenta</h1>
-      <p>Tus movimientos quedan guardados en tu cuenta y solo vos podés verlos.</p>
-      <form onSubmit={manejarEnvio} noValidate>
-        <label htmlFor="nombre">Nombre</label>
-        <input id="nombre" value={nombre} onChange={(evento) => setNombre(evento.target.value)} />
-        {errorNombre && <p role="alert">{errorNombre}</p>}
+    <div className="auth">
+      <div className="left">
+        <div className="brand">
+          <div className="logo">
+            <IconoLogo />
+          </div>
+          <b>Qash</b>
+        </div>
+        <div className="pitch">
+          <h2>Anotá tus gastos como se los contarías a alguien.</h2>
+          <p>
+            Escribilos, dictalos o subí el comprobante. Qash los ordena por categoría y te avisa cuando algo
+            se sale de lo habitual.
+          </p>
+          <div className="demo">
+            <div className="u">
+              <span className="b">Gasté 15000 en el súper con débito</span>
+            </div>
+            <div className="mini">
+              <div>
+                <span>Monto</span>
+                <b>$15.000,00</b>
+              </div>
+              <div>
+                <span>Medio de pago</span>
+                <b>Débito</b>
+              </div>
+              <div>
+                <span>Categoría</span>
+                <b>Supermercado</b>
+              </div>
+              <div>
+                <span>Fecha</span>
+                <b>27/09/2026</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="right">
+        <div className="form">
+          <h1>Crear cuenta</h1>
+          <p className="lead">Tus movimientos quedan guardados en tu cuenta y solo vos podés verlos.</p>
+          <form onSubmit={manejarEnvio} noValidate>
+            <div className="fg">
+              <label htmlFor="nombre">Nombre</label>
+              <input
+                className={`inp${errorNombre ? ' bad' : ''}`}
+                id="nombre"
+                value={nombre}
+                onChange={(evento) => setNombre(evento.target.value)}
+              />
+              {errorNombre && (
+                <p className="help-bad" role="alert">
+                  <IconoAlerta />
+                  {errorNombre}
+                </p>
+              )}
+            </div>
 
-        <label htmlFor="correo">Correo electrónico</label>
-        <input
-          id="correo"
-          type="email"
-          value={correo}
-          onChange={(evento) => setCorreo(evento.target.value)}
-        />
-        {errorCorreo && <p role="alert">{errorCorreo}</p>}
+            <div className="fg">
+              <label htmlFor="correo">Correo electrónico</label>
+              <input
+                className={`inp${errorCorreo ? ' bad' : ''}`}
+                id="correo"
+                type="email"
+                value={correo}
+                onChange={(evento) => setCorreo(evento.target.value)}
+              />
+              {errorCorreo && (
+                <p className="help-bad" role="alert">
+                  <IconoAlerta />
+                  {errorCorreo}
+                </p>
+              )}
+            </div>
 
-        <label htmlFor="contrasena">Contraseña</label>
-        <input
-          id="contrasena"
-          type="password"
-          value={contrasena}
-          onChange={(evento) => setContrasena(evento.target.value)}
-        />
-        <p>Mínimo 8 caracteres.</p>
+            <div className="fg">
+              <label htmlFor="contrasena">Contraseña</label>
+              <input
+                className={`inp${errorContrasena ? ' bad' : ''}`}
+                id="contrasena"
+                type="password"
+                value={contrasena}
+                onChange={(evento) => setContrasena(evento.target.value)}
+              />
+              <p className="hint">Mínimo 8 caracteres.</p>
+            </div>
 
-        <label htmlFor="repetir-contrasena">Repetir contraseña</label>
-        <input
-          id="repetir-contrasena"
-          type="password"
-          value={repetirContrasena}
-          onChange={(evento) => setRepetirContrasena(evento.target.value)}
-        />
-        {errorContrasena && <p role="alert">{errorContrasena}</p>}
+            <div className="fg">
+              <label htmlFor="repetir-contrasena">Repetir contraseña</label>
+              <input
+                className="inp"
+                id="repetir-contrasena"
+                type="password"
+                value={repetirContrasena}
+                onChange={(evento) => setRepetirContrasena(evento.target.value)}
+              />
+              {errorContrasena && (
+                <p className="help-bad" role="alert">
+                  <IconoAlerta />
+                  {errorContrasena}
+                </p>
+              )}
+            </div>
 
-        <button type="submit" disabled={enviando}>
-          Crear cuenta
-        </button>
-      </form>
-      <p>
-        ¿Ya tenés cuenta? <Link to="/login">Iniciar sesión</Link>
-      </p>
+            <button className="btn primary" type="submit" disabled={enviando}>
+              Crear cuenta
+            </button>
+          </form>
+          <p className="alt">
+            ¿Ya tenés cuenta? <Link to="/login">Iniciar sesión</Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

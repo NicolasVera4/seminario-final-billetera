@@ -2,11 +2,18 @@ import type { ReactNode } from 'react'
 import BarraLateral from './BarraLateral'
 import RutaProtegida from './RutaProtegida'
 
-export default function Layout({ children }: { children: ReactNode }) {
+interface LayoutProps {
+  children: ReactNode
+  sidebarExtra?: ReactNode
+}
+
+export default function Layout({ children, sidebarExtra }: LayoutProps) {
   return (
     <RutaProtegida>
-      <BarraLateral />
-      {children}
+      <div className="frame">
+        <BarraLateral>{sidebarExtra}</BarraLateral>
+        <div className="main">{children}</div>
+      </div>
     </RutaProtegida>
   )
 }

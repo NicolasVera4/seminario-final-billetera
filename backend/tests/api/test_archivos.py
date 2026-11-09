@@ -6,6 +6,7 @@ from app.esquemas.movimientos import InterpretacionMovimiento
 from app.modelos.comprobante import Comprobante
 from app.modelos.enums import TipoMovimiento
 from app.modelos.movimiento import Movimiento
+from app.proveedores.llm import ErrorInterpretacion
 from tests.ayudantes import auth, id_categoria, id_medio_pago, registrar_y_loguear
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -73,6 +74,18 @@ def test_hu05_ca3_formato_no_admitido_se_rechaza_con_415(cliente, proveedor_llm)
 
     assert respuesta.status_code == 415
     assert "jpg" in respuesta.json()["detail"].lower() or "pdf" in respuesta.json()["detail"].lower()
+
+
+def test_rate_limit_de_groq_da_un_mensaje_distinto_al_de_no_pudimos_leer_el_comprobante(cliente, proveedor_llm):
+    """Bug reportado: con un 429 de Groq (límite de tokens por día agotado), el mensaje decía
+    "No pudimos leer el comprobante", como si el documento estuviera mal, cuando es temporal."""
+    token = registrar_y_loguear(cliente)
+    proveedor_llm.respuesta_extraer = ErrorInterpretacion(limite_tasa=True)
+
+    respuesta = _subir(cliente, token, "ticket_supermercado.png", "image/png")
+
+    assert respuesta.status_code == 422
+    assert "muchas solicitudes" in respuesta.json()["detail"].lower()
 
 
 def test_hu05_ca4_sin_monto_legible_no_registra_nada(cliente, proveedor_llm):

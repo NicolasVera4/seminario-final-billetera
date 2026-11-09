@@ -141,6 +141,48 @@ describe('TarjetaMovimiento', () => {
     expect(screen.getByLabelText('Monto')).toBeInTheDocument()
   })
 
+  it('al guardar, envía conversacion_id y mensaje_id para poder reconstruir el historial', async () => {
+    mockearValidar([])
+    let cuerpoEnviado: unknown
+    servidor.use(
+      http.post('/api/movimientos', async ({ request }) => {
+        cuerpoEnviado = await request.json()
+        return HttpResponse.json(
+          [
+            {
+              id: 1,
+              monto: 15000,
+              fecha: '2026-10-31',
+              tipo: 'EGRESO',
+              descripcion: 'Compra en el súper',
+              categoria_id: 1,
+              medio_pago_id: 2,
+              origen_id: 1,
+              creado_en: '2026-10-31T12:00:00Z',
+            },
+          ],
+          { status: 201 },
+        )
+      }),
+    )
+    render(<TarjetaMovimiento borrador={BORRADOR_VALIDO} conversacionId={7} mensajeId={42} />)
+    await screen.findByRole('button', { name: 'Guardar movimiento' })
+
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: 'Guardar movimiento' }))
+
+    await screen.findByText('Guardado')
+    expect(cuerpoEnviado).toMatchObject([{ conversacion_id: 7, mensaje_id: 42 }])
+  })
+
+  it('con yaGuardado, muestra directamente la tarjeta de movimiento registrado sin validar de nuevo', async () => {
+    render(<TarjetaMovimiento borrador={BORRADOR_VALIDO} yaGuardado />)
+
+    expect(await screen.findByText('Movimiento registrado')).toBeInTheDocument()
+    expect(screen.getByText('Guardado')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar movimiento' })).not.toBeInTheDocument()
+  })
+
   it('el botón Descartar avisa al padre', async () => {
     mockearValidar([])
     const alDescartar = vi.fn()

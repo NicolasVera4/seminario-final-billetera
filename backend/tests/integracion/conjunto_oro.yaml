@@ -1,7 +1,9 @@
 # Conjunto de oro para HU-03 (interpretacion con el LLM real).
 # Cada entrada: mensaje tal como lo escribiria un usuario + lo que se espera
 # que interprete el modelo. fecha_hoy simula la fecha del dia para CA2.
-# Fase 2 corre solo las primeras 10; el conjunto completo (~30) se arma en la Fase 12.
+# Fase 2 corrio solo las primeras 10; las entradas 11-30 se agregaron en la Fase 12
+# (mensajes sinteticos, escritos para cubrir mas categorias, medios de pago, jerga
+# rioplatense y las dos intenciones de consulta, no relevados de usuarios reales).
 
 - texto: "gasté 15000 en el súper con débito"
   fecha_hoy: "2026-10-31"
@@ -79,3 +81,152 @@
     tipo: EGRESO
     medio_pago: "Billetera virtual"
     categoria: "Restaurantes"
+
+- texto: "me suscribí a Netflix, son 4500 por mes, lo pago con débito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 4500
+    tipo: EGRESO
+    medio_pago: "Débito"
+    categoria: "Suscripciones"
+
+- texto: "compré unas zapatillas por 45000 con la tarjeta de crédito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 45000
+    tipo: EGRESO
+    medio_pago: "Crédito"
+    categoria: "Indumentaria"
+
+- texto: "le presté 5000 a un amigo en efectivo"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 5000
+    tipo: EGRESO
+    medio_pago: "Efectivo"
+
+- texto: "me devolvieron 3000 que había prestado, por transferencia"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 3000
+    tipo: INGRESO
+    medio_pago: "Transferencia"
+
+- texto: "pagué el alquiler, 180000 por transferencia"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 180000
+    tipo: EGRESO
+    medio_pago: "Transferencia"
+    categoria: "Hogar y servicios"
+
+- texto: "gasté 3 lucas en el kiosco con efectivo"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 3000
+    tipo: EGRESO
+    medio_pago: "Efectivo"
+
+- texto: "pagué 2 palos por el auto nuevo, transferencia"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 2000000
+    tipo: EGRESO
+    medio_pago: "Transferencia"
+
+- texto: "fui al gimnasio y pagué la mensualidad, 15000, débito"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 15000
+    tipo: EGRESO
+    medio_pago: "Débito"
+    categoria: "Salud y deporte"
+
+- texto: "gasté 2500,50 en el almacén, efectivo"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 2500.5
+    tipo: EGRESO
+    medio_pago: "Efectivo"
+    categoria: "Supermercado"
+
+- texto: "pagué 8000 de uber"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 8000
+    tipo: EGRESO
+    categoria: "Transporte"
+
+- texto: "recargué la SUBE con 5000 en efectivo"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 5000
+    tipo: EGRESO
+    medio_pago: "Efectivo"
+    categoria: "Transporte"
+
+- texto: "pagué el internet, 12000 con débito automático"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 12000
+    tipo: EGRESO
+    medio_pago: "Débito"
+    categoria: "Hogar y servicios"
+
+- texto: "me pagaron un adicional del laburo, 60000, transferencia"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    monto: 60000
+    tipo: INGRESO
+    medio_pago: "Transferencia"
+    categoria: "Sueldo"
+
+- texto: "gasté guita en el super pero no me acuerdo cuánto"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    faltantes: ["monto"]
+
+- texto: "tengo que anotar un gasto"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: REGISTRO
+    faltantes: ["monto"]
+
+- texto: "¿cuánto gasté este mes?"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_DATOS
+
+- texto: "mostrame mis gastos de septiembre en comida"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_DATOS
+
+- texto: "¿en qué categoría gasto más?"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_DATOS
+
+- texto: "dame consejos para gastar menos"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_ASESORAMIENTO
+
+- texto: "¿me conviene ahorrar en dólares o en pesos?"
+  fecha_hoy: "2026-10-31"
+  esperado:
+    intencion: CONSULTA_ASESORAMIENTO

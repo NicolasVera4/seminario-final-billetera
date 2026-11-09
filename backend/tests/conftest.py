@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from datetime import UTC, datetime
 
 import chromadb
@@ -57,7 +59,16 @@ def embedder():
 
 @pytest.fixture
 def cliente_chroma():
-    return chromadb.EphemeralClient()
+    # chromadb.EphemeralClient() comparte un singleton de proceso cuando no se le da un path
+    # propio: dos instancias "separadas" terminan viendo las mismas colecciones (confirmado
+    # empiricamente), lo que filtra datos de un test a otro (p. ej. documentos cargados con el
+    # mismo titulo en tests de asesoramiento/admin). Un directorio temporal propio por test da
+    # aislamiento real.
+    directorio = tempfile.mkdtemp(prefix="chroma_test_")
+    try:
+        yield chromadb.PersistentClient(path=directorio)
+    finally:
+        shutil.rmtree(directorio, ignore_errors=True)
 
 
 @pytest.fixture

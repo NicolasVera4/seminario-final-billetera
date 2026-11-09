@@ -2,40 +2,53 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import Dashboard from './Dashboard'
+import { guardarToken } from '../api/cliente'
 import { servidor } from '../test/servidor'
 
+beforeEach(() => {
+  guardarToken('token-valido')
+})
+
 function dashboardRespuesta(overrides = {}) {
+  // Los montos van como string: así los serializa de verdad el backend (Decimal -> string en el
+  // JSON). Un mock con numbers acá hubiera dejado pasar el bug de Recharts sin poder graficar.
   return {
     anio: 2026,
     mes: 9,
-    ingresos: { monto: 980000, variacion_texto: 'Igual que en agosto.' },
-    egresos: { monto: 612450, variacion_texto: '3,8% más que en agosto.' },
-    saldo: 367550,
+    ingresos: { monto: '980000.00', variacion_texto: 'Igual que en agosto.' },
+    egresos: { monto: '612450.00', variacion_texto: '3,8% más que en agosto.' },
+    saldo: '367550.00',
     evolucion: [
-      { anio: 2026, mes: 7, ingresos: 980000, egresos: 520000 },
-      { anio: 2026, mes: 8, ingresos: 980000, egresos: 590000 },
-      { anio: 2026, mes: 9, ingresos: 980000, egresos: 612450 },
+      { anio: 2026, mes: 7, ingresos: '980000.00', egresos: '520000.00' },
+      { anio: 2026, mes: 8, ingresos: '980000.00', egresos: '590000.00' },
+      { anio: 2026, mes: 9, ingresos: '980000.00', egresos: '612450.00' },
     ],
     distribucion_categorias: [
-      { categoria: 'Supermercado', categoria_id: 1, monto: 168300, porcentaje: 27 },
-      { categoria: 'Transporte', categoria_id: 4, monto: 71000, porcentaje: 12 },
+      { categoria: 'Supermercado', categoria_id: 1, monto: '168300.00', porcentaje: 27 },
+      { categoria: 'Transporte', categoria_id: 4, monto: '71000.00', porcentaje: 12 },
     ],
     alertas: [
       {
         categoria: 'Restaurantes',
         categoria_id: 3,
         porcentaje: 42,
-        monto_actual: 86400,
-        promedio: 60800,
+        monto_actual: '86400.00',
+        promedio: '60800.00',
       },
     ],
-    proyeccion: { datos_suficientes: true, anio: 2026, mes: 10, monto: 640000 },
+    proyeccion: { datos_suficientes: true, anio: 2026, mes: 10, monto: '640000.0' },
     anomalias: {
       datos_suficientes: true,
       meses: [
-        { anio: 2026, mes: 7, monto: 820000, promedio_otros_meses: 586000, porcentaje_sobre_promedio: 40 },
+        {
+          anio: 2026,
+          mes: 7,
+          monto: '820000.00',
+          promedio_otros_meses: '586000.00',
+          porcentaje_sobre_promedio: 40,
+        },
       ],
     },
     hay_movimientos: true,
@@ -191,7 +204,7 @@ describe('Dashboard', () => {
           return HttpResponse.json(
             dashboardRespuesta({
               mes: 8,
-              ingresos: { monto: 500000, variacion_texto: 'Igual que en julio.' },
+              ingresos: { monto: '500000.00', variacion_texto: 'Igual que en julio.' },
             }),
           )
         }
@@ -202,7 +215,8 @@ describe('Dashboard', () => {
     await screen.findByText('$980.000,00')
 
     const usuario = userEvent.setup()
-    await usuario.selectOptions(screen.getByLabelText('Mes'), '2026-08')
+    await usuario.click(screen.getByLabelText('Mes'))
+    await usuario.click(screen.getByRole('option', { name: 'agosto 2026' }))
 
     expect(await screen.findByText('$500.000,00')).toBeInTheDocument()
   })

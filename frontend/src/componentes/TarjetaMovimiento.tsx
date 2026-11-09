@@ -3,9 +3,13 @@ import type { Catalogos } from '../api/catalogos'
 import { obtenerCatalogos } from '../api/catalogos'
 import type { Borrador } from '../api/chat'
 import { guardarMovimientos, validarMovimiento } from '../api/movimientos'
+import { IconoAlerta, IconoCheck, IconoEditar } from './iconos'
 
 export interface TarjetaMovimientoProps {
   borrador: Borrador
+  conversacionId?: number | null
+  mensajeId?: number | null
+  yaGuardado?: boolean
   onGuardado?: () => void
   onDescartado?: () => void
 }
@@ -34,9 +38,10 @@ interface SelectCatalogoProps {
 
 function SelectCatalogo({ id, etiqueta, valor, opciones, placeholder, mensajeError, onCambiar }: SelectCatalogoProps) {
   return (
-    <>
+    <div className="fl">
       <label htmlFor={id}>{etiqueta}</label>
       <select
+        className="sel bad"
         id={id}
         value={valor ?? ''}
         onChange={(evento) => onCambiar(evento.target.value ? Number(evento.target.value) : null)}
@@ -48,12 +53,19 @@ function SelectCatalogo({ id, etiqueta, valor, opciones, placeholder, mensajeErr
           </option>
         ))}
       </select>
-      <p>{mensajeError}</p>
-    </>
+      <p className="help-bad">{mensajeError}</p>
+    </div>
   )
 }
 
-export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }: TarjetaMovimientoProps) {
+export default function TarjetaMovimiento({
+  borrador,
+  conversacionId,
+  mensajeId,
+  yaGuardado,
+  onGuardado,
+  onDescartado,
+}: TarjetaMovimientoProps) {
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null)
   const [monto, setMonto] = useState(borrador.monto)
   const [fecha, setFecha] = useState(borrador.fecha)
@@ -64,7 +76,7 @@ export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }
   const [errores, setErrores] = useState<string[]>([])
   const [advertencias, setAdvertencias] = useState<string[]>([])
   const [editando, setEditando] = useState(false)
-  const [guardado, setGuardado] = useState(false)
+  const [guardado, setGuardado] = useState(!!yaGuardado)
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
@@ -74,6 +86,7 @@ export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }
   }, [])
 
   useEffect(() => {
+    if (guardado) return
     validarMovimiento({
       monto,
       fecha,
@@ -87,13 +100,22 @@ export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }
         setAdvertencias(resultado.advertencias)
       })
       .catch(() => {})
-  }, [monto, fecha, tipo, descripcion, categoriaId, medioPagoId])
+  }, [guardado, monto, fecha, tipo, descripcion, categoriaId, medioPagoId])
 
   async function manejarGuardar() {
     setGuardando(true)
     try {
       await guardarMovimientos([
-        { monto, fecha, tipo, descripcion, categoria_id: categoriaId, medio_pago_id: medioPagoId },
+        {
+          monto,
+          fecha,
+          tipo,
+          descripcion,
+          categoria_id: categoriaId,
+          medio_pago_id: medioPagoId,
+          conversacion_id: conversacionId,
+          mensaje_id: mensajeId,
+        },
       ])
       setGuardado(true)
       onGuardado?.()
@@ -107,104 +129,172 @@ export default function TarjetaMovimiento({ borrador, onGuardado, onDescartado }
 
   if (guardado) {
     return (
-      <div>
-        <p>Movimiento registrado</p>
-        <p>Guardado</p>
-        <dl>
-          <dt>Monto</dt>
-          <dd>{formatearMonto(monto)}</dd>
-          <dt>Fecha</dt>
-          <dd>{fecha}</dd>
-          <dt>Tipo</dt>
-          <dd>{ETIQUETA_TIPO[tipo] ?? tipo}</dd>
-          <dt>Categoría</dt>
-          <dd>{nombreCategoria}</dd>
-          <dt>Medio de pago</dt>
-          <dd>{nombreMedioPago}</dd>
-          <dt>Descripción</dt>
-          <dd>{descripcion}</dd>
-        </dl>
+      <div className="mv">
+        <div className="hd">
+          <b>Movimiento registrado</b>
+          <span className="pill ok">
+            <IconoCheck />
+            Guardado
+          </span>
+        </div>
+        <div className="grid">
+          <div className="fl">
+            <label>Monto</label>
+            <div className="v big num">{formatearMonto(monto)}</div>
+          </div>
+          <div className="fl">
+            <label>Tipo</label>
+            <div className="v">{ETIQUETA_TIPO[tipo] ?? tipo}</div>
+          </div>
+          <div className="fl">
+            <label>Fecha</label>
+            <div className="v">{fecha}</div>
+          </div>
+          <div className="fl">
+            <label>Medio de pago</label>
+            <div className="v">{nombreMedioPago}</div>
+          </div>
+          <div className="fl">
+            <label>Categoría</label>
+            <div className="v">{nombreCategoria}</div>
+          </div>
+          <div className="fl">
+            <label>Descripción</label>
+            <div className="v">{descripcion}</div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <p>Revisá el movimiento antes de guardarlo</p>
-      {errores.length > 0 && <p>{errores.length} datos para completar</p>}
+    <div className="mv">
+      <div className="hd">
+        <b>Revisá el movimiento antes de guardarlo</b>
+        {errores.length > 0 && (
+          <span className="pill warn">
+            <IconoAlerta />
+            {errores.length} datos para completar
+          </span>
+        )}
+      </div>
 
-      {editando ? (
-        <>
-          <label htmlFor="monto">Monto</label>
-          <input
-            id="monto"
-            type="number"
-            value={monto}
-            onChange={(evento) => setMonto(Number(evento.target.value))}
+      <div className="grid">
+        {editando ? (
+          <>
+            <div className="fl">
+              <label htmlFor="monto">Monto</label>
+              <input
+                className="inp"
+                id="monto"
+                type="number"
+                value={monto}
+                onChange={(evento) => setMonto(Number(evento.target.value))}
+              />
+            </div>
+            <div className="fl">
+              <label htmlFor="fecha">Fecha</label>
+              <input
+                className="inp"
+                id="fecha"
+                type="date"
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+              />
+            </div>
+            <div className="fl">
+              <label htmlFor="descripcion">Descripción</label>
+              <input
+                className="inp"
+                id="descripcion"
+                value={descripcion}
+                onChange={(evento) => setDescripcion(evento.target.value)}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="fl">
+              <label>Monto</label>
+              <div className="v big num">{formatearMonto(monto)}</div>
+            </div>
+            <div className="fl">
+              <label>Tipo</label>
+              <div className="v">{ETIQUETA_TIPO[tipo] ?? tipo}</div>
+            </div>
+            <div className="fl">
+              <label>Fecha</label>
+              <div className="v">{fecha}</div>
+            </div>
+            <div className="fl">
+              <label>Descripción</label>
+              <div className="v">{descripcion}</div>
+            </div>
+          </>
+        )}
+        {errores.includes('MONTO_INVALIDO') && <p className="help-bad">El monto no es válido.</p>}
+        {errores.includes('FECHA_FUTURA') && <p className="help-bad">La fecha no puede ser posterior a hoy.</p>}
+
+        {categoriaId != null && !errores.includes('CATEGORIA_INVALIDA') ? (
+          <div className="fl">
+            <label>Categoría</label>
+            <div className="v">{nombreCategoria}</div>
+          </div>
+        ) : (
+          <SelectCatalogo
+            id="categoria"
+            etiqueta="Categoría"
+            valor={categoriaId}
+            opciones={catalogos?.categorias ?? []}
+            placeholder="Elegí una categoría"
+            mensajeError={mensajeCategoria(borrador.categoria_sugerida)}
+            onCambiar={setCategoriaId}
           />
-          <label htmlFor="fecha">Fecha</label>
-          <input id="fecha" type="date" value={fecha} onChange={(evento) => setFecha(evento.target.value)} />
-          <label htmlFor="descripcion">Descripción</label>
-          <input
-            id="descripcion"
-            value={descripcion}
-            onChange={(evento) => setDescripcion(evento.target.value)}
+        )}
+
+        {medioPagoId != null && !errores.includes('MEDIO_PAGO_FALTANTE') ? (
+          <div className="fl">
+            <label>Medio de pago</label>
+            <div className="v">{nombreMedioPago}</div>
+          </div>
+        ) : (
+          <SelectCatalogo
+            id="medio_pago"
+            etiqueta="Medio de pago"
+            valor={medioPagoId}
+            opciones={catalogos?.medios_pago ?? []}
+            placeholder="Elegí un medio de pago"
+            mensajeError="El mensaje no indica cómo pagaste."
+            onCambiar={setMedioPagoId}
           />
-        </>
-      ) : (
-        <dl>
-          <dt>Monto</dt>
-          <dd>{formatearMonto(monto)}</dd>
-          <dt>Fecha</dt>
-          <dd>{fecha}</dd>
-          <dt>Tipo</dt>
-          <dd>{ETIQUETA_TIPO[tipo] ?? tipo}</dd>
-          <dt>Descripción</dt>
-          <dd>{descripcion}</dd>
-        </dl>
-      )}
-      {errores.includes('MONTO_INVALIDO') && <p>El monto no es válido.</p>}
-      {errores.includes('FECHA_FUTURA') && <p>La fecha no puede ser posterior a hoy.</p>}
+        )}
+      </div>
 
-      {categoriaId != null && !errores.includes('CATEGORIA_INVALIDA') ? (
-        <p>Categoría: {nombreCategoria}</p>
-      ) : (
-        <SelectCatalogo
-          id="categoria"
-          etiqueta="Categoría"
-          valor={categoriaId}
-          opciones={catalogos?.categorias ?? []}
-          placeholder="Elegí una categoría"
-          mensajeError={mensajeCategoria(borrador.categoria_sugerida)}
-          onCambiar={setCategoriaId}
-        />
+      {advertencias.includes('POSIBLE_DUPLICADO') && (
+        <p className="help-bad" style={{ padding: '0 18px' }}>
+          Aviso: posible duplicado. Revisá antes de guardar.
+        </p>
       )}
 
-      {medioPagoId != null && !errores.includes('MEDIO_PAGO_FALTANTE') ? (
-        <p>Medio de pago: {nombreMedioPago}</p>
-      ) : (
-        <SelectCatalogo
-          id="medio_pago"
-          etiqueta="Medio de pago"
-          valor={medioPagoId}
-          opciones={catalogos?.medios_pago ?? []}
-          placeholder="Elegí un medio de pago"
-          mensajeError="El mensaje no indica cómo pagaste."
-          onCambiar={setMedioPagoId}
-        />
-      )}
-
-      {advertencias.includes('POSIBLE_DUPLICADO') && <p>Aviso: posible duplicado. Revisá antes de guardar.</p>}
-
-      <button type="button" onClick={manejarGuardar} disabled={errores.length > 0 || guardando}>
-        Guardar movimiento
-      </button>
-      <button type="button" onClick={() => setEditando(true)}>
-        Editar
-      </button>
-      <button type="button" onClick={() => onDescartado?.()}>
-        Descartar
-      </button>
+      <div className="ft">
+        <button
+          className="btn primary"
+          type="button"
+          onClick={manejarGuardar}
+          disabled={errores.length > 0 || guardando}
+        >
+          <IconoCheck />
+          Guardar movimiento
+        </button>
+        <button className="btn" type="button" onClick={() => setEditando(true)}>
+          <IconoEditar />
+          Editar
+        </button>
+        <button className="btn ghost" type="button" onClick={() => onDescartado?.()}>
+          Descartar
+        </button>
+        {errores.length > 0 && <span className="note">Completá los datos marcados para guardar</span>}
+      </div>
     </div>
   )
 }

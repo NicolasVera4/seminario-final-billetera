@@ -14,13 +14,20 @@ from app.esquemas.movimientos import (
 )
 from app.modelos.categoria import Categoria
 from app.modelos.comprobante import Comprobante
-from app.modelos.enums import TipoMovimiento
+from app.modelos.conversacion import Conversacion
+from app.modelos.enums import RolMensaje, TipoMovimiento
 from app.modelos.medio_pago import MedioPago
 from app.modelos.movimiento import Movimiento
 from app.modelos.origen import Origen
 from app.modelos.usuario import Usuario
+from app.servicios.conversaciones import guardar_mensaje
 from app.servicios.reloj import Reloj
 from app.servicios.validacion import validar, validar_campos
+
+ORIGENES_DE_LOTE = {
+    "Resumen": "resumen de tarjeta",
+    "Extracto": "extracto",
+}
 
 
 def obtener_catalogos(sesion: Session) -> CatalogosSalida:
@@ -114,6 +121,7 @@ def guardar_movimientos(
             medio_pago_id=item.medio_pago_id,
             origen_id=origenes_por_nombre[item.origen],
             conversacion_id=item.conversacion_id,
+            mensaje_id=item.mensaje_id,
             comprobante_id=comprobante_id,
             cuota_numero=item.cuota_numero,
             cuota_total=item.cuota_total,
@@ -124,9 +132,39 @@ def guardar_movimientos(
     sesion.flush()
     for movimiento in movimientos_creados:
         sesion.refresh(movimiento)
+
+    _dejar_mensaje_de_cierre_si_es_un_lote(sesion, usuario, datos)
     sesion.commit()
 
     return [MovimientoSalida.model_validate(m) for m in movimientos_creados]
+
+
+def _dejar_mensaje_de_cierre_si_es_un_lote(
+    sesion: Session, usuario: Usuario, datos: list[MovimientoEntrada]
+) -> None:
+    """Si el guardado vino de la pantalla de revisión en lote (resumen o extracto) y está
+    asociado a una conversación del chat, deja un mensaje del asistente confirmando lo que se
+    guardó — antes, el único mensaje que quedaba era el de "Encontré N consumos, revisalos y
+    confirmalos.", que seguía sonando como pendiente aunque el usuario ya los hubiera guardado.
+    Un movimiento confirmado desde el chat de texto o un comprobante puntual no pasa por acá: ya
+    muestra su propio estado "Guardado" en la tarjeta."""
+    items_de_lote = [
+        item for item in datos if item.origen in ORIGENES_DE_LOTE and item.conversacion_id is not None
+    ]
+    if not items_de_lote:
+        return
+
+    conversacion_id = items_de_lote[0].conversacion_id
+    conversacion = sesion.get(Conversacion, conversacion_id)
+    if conversacion is None or conversacion.usuario_id != usuario.id:
+        return
+
+    cantidad = len(items_de_lote)
+    origen_texto = ORIGENES_DE_LOTE[items_de_lote[0].origen]
+    verbo = "cargó" if cantidad == 1 else "cargaron"
+    sustantivo = "movimiento" if cantidad == 1 else "movimientos"
+    texto = f"Se {verbo} {cantidad} {sustantivo} de tu {origen_texto}."
+    guardar_mensaje(sesion, conversacion, RolMensaje.ASISTENTE, texto)
 
 
 def listar_movimientos(

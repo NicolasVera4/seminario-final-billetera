@@ -56,4 +56,20 @@ describe('Login', () => {
 
     expect(navegarMock).toHaveBeenCalledWith('/')
   })
+
+  it('un administrador, al iniciar sesión, va directo a la documentación (no al chat)', async () => {
+    servidor.use(
+      http.post('/api/auth/login', () =>
+        HttpResponse.json({ access_token: 'token-valido', token_type: 'bearer' }),
+      ),
+      http.get('/api/auth/yo', () =>
+        HttpResponse.json({ id: 2, nombre: 'Admin', correo: 'admin@mail.com', rol: 'ADMINISTRADOR' }),
+      ),
+    )
+    renderizar()
+
+    await completarFormulario('admin@mail.com', 'contrasena123')
+
+    expect(navegarMock).toHaveBeenCalledWith('/admin/documentos')
+  })
 })

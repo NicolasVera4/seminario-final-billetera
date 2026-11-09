@@ -14,19 +14,19 @@ CAMPOS = ["intencion", "monto", "tipo", "medio_pago", "categoria", "faltantes"]
 pytestmark = pytest.mark.integracion
 
 
-def _cargar_primeras_10():
+def _cargar_todas():
     with RUTA_CONJUNTO.open(encoding="utf-8") as archivo:
-        return yaml.safe_load(archivo)[:10]
+        return yaml.safe_load(archivo)
 
 
-def test_conjunto_oro_primeras_10_entradas_contra_groq_real():
+def test_conjunto_oro_completo_contra_groq_real():
     proveedor = ProveedorGroq()
     catalogo = Catalogo(categorias=CATEGORIAS, medios_pago=MEDIOS_PAGO)
 
     aciertos = dict.fromkeys(CAMPOS, 0)
     total = dict.fromkeys(CAMPOS, 0)
 
-    for caso in _cargar_primeras_10():
+    for caso in _cargar_todas():
         hoy = date.fromisoformat(caso["fecha_hoy"])
         resultado = proveedor.clasificar_e_interpretar(caso["texto"], hoy, catalogo)
         esperado = caso["esperado"]

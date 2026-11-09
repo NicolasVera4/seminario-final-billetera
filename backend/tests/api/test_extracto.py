@@ -3,7 +3,8 @@ from decimal import Decimal
 
 import pandas as pd
 
-from app.esquemas.movimientos import ColumnasDetectadas
+from app.esquemas.movimientos import CategoriaMedioPagoFila, ColumnasDetectadas
+from app.proveedores.llm import ErrorInterpretacion
 from tests.ayudantes import auth, crear_movimiento, id_usuario, registrar_y_loguear
 
 
@@ -142,6 +143,63 @@ def test_hu14_ca4_los_items_son_borradores_y_no_se_guarda_nada_solo(cliente, ses
 
     historial = cliente.get("/api/movimientos", headers=auth(token))
     assert historial.json()["total"] == 0
+
+
+def test_el_extracto_tambien_se_categoriza_via_llm_igual_que_un_comprobante(cliente, proveedor_llm):
+    """Bug reportado: al importar un extracto, categoría y medio de pago quedaban siempre en
+    null — nunca se le pedía nada al LLM, a diferencia de un comprobante o un resumen de tarjeta,
+    que sí lo hacen. El usuario tenía que completar las 18 filas a mano."""
+    token = registrar_y_loguear(cliente)
+    proveedor_llm.respuesta_categorizar_filas = [
+        CategoriaMedioPagoFila(categoria="Supermercado", medio_pago="Débito"),
+        CategoriaMedioPagoFila(categoria="Restaurantes", medio_pago="Crédito"),
+    ]
+    contenido = _csv(
+        [
+            {"Fecha": "01/09/2026", "Descripcion": "Supermercado Disco", "Monto": "-15000"},
+            {"Fecha": "02/09/2026", "Descripcion": "Bar La Esquina", "Monto": "-8000"},
+        ]
+    )
+
+    respuesta = _subir(cliente, token, "extracto.csv", "text/csv", contenido)
+
+    assert respuesta.status_code == 200
+    items = respuesta.json()["items"]
+    assert items[0]["categoria_id"] is not None
+    assert items[0]["errores"] == []
+    assert items[1]["categoria_id"] is not None
+    assert len(proveedor_llm.llamadas_categorizar_filas) == 1
+    assert proveedor_llm.llamadas_categorizar_filas[0]["descripciones"] == [
+        "Supermercado Disco",
+        "Bar La Esquina",
+    ]
+
+
+def test_extracto_con_categoria_fuera_del_catalogo_queda_como_sugerencia_para_elegir(cliente, proveedor_llm):
+    token = registrar_y_loguear(cliente)
+    proveedor_llm.respuesta_categorizar_filas = [CategoriaMedioPagoFila(categoria="Gimnasio", medio_pago=None)]
+    contenido = _csv([{"Fecha": "01/09/2026", "Descripcion": "Cuota gimnasio", "Monto": "-20000"}])
+
+    respuesta = _subir(cliente, token, "extracto.csv", "text/csv", contenido)
+
+    assert respuesta.status_code == 200
+    item = respuesta.json()["items"][0]
+    assert item["categoria_id"] is None
+    assert item["categoria_sugerida"] == "Gimnasio"
+    assert "CATEGORIA_INVALIDA" in item["errores"]
+
+
+def test_si_la_categorizacion_del_extracto_falla_igual_se_importa_sin_categorizar(cliente, proveedor_llm):
+    """Categorizar es una ayuda, no un requisito: si el LLM falla (rate limit, lo que sea), el
+    extracto se sigue importando — el usuario completa a mano, como antes de este cambio."""
+    token = registrar_y_loguear(cliente)
+    proveedor_llm.respuesta_categorizar_filas = ErrorInterpretacion()
+    contenido = _csv([{"Fecha": "01/09/2026", "Descripcion": "Supermercado", "Monto": "-15000"}])
+
+    respuesta = _subir(cliente, token, "extracto.csv", "text/csv", contenido)
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["items"][0]["categoria_id"] is None
 
 
 def test_formato_no_admitido_devuelve_415(cliente):

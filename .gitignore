@@ -34,3 +34,9 @@ backend/alembic/versions/__pycache__/
 
 # Logs
 *.log
+
+# Informes del ensayo de la demo: contienen montos y datos de documentos reales propios,
+# no de ejemplo. No se commitean (ver docs/informe_demo.md para el detalle del porque).
+docs/informe_demo.md
+docs/resultado_e2e_demo.md
+CLAUDE.md

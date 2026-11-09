@@ -1,4 +1,3 @@
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,8 +10,9 @@ from app.modelos.medio_pago import MedioPago
 from app.modelos.mensaje import Mensaje
 from app.modelos.usuario import Usuario
 from app.proveedores.embeddings import Embedder
-from app.proveedores.llm import ErrorInterpretacion, ProveedorLLM
+from app.proveedores.llm import MENSAJE_LIMITE_TASA, ErrorInterpretacion, ProveedorLLM
 from app.servicios import asesoramiento as servicio_asesoramiento
+from app.servicios.conversaciones import guardar_mensaje, obtener_o_crear_conversacion
 from app.servicios.reloj import Reloj
 
 MENSAJE_FALTA_MONTO = "Me falta el monto. ¿Cuánto fue?"
@@ -30,8 +30,11 @@ def procesar_mensaje(
     embedder: Embedder,
     cliente_chroma,
 ) -> ChatSalida:
-    conversacion = _obtener_o_crear_conversacion(sesion, usuario, datos)
-    _guardar_mensaje(sesion, conversacion, RolMensaje.USUARIO, datos.texto)
+    conversacion = obtener_o_crear_conversacion(sesion, usuario, datos.conversacion_id, datos.texto)
+    historial = _ultimos_mensajes(sesion, conversacion, CANTIDAD_MENSAJES_HISTORIAL)
+    guardar_mensaje(
+        sesion, conversacion, RolMensaje.USUARIO, datos.texto, transcripto=datos.transcripto
+    )
 
     categorias, medios_pago, catalogo = obtener_catalogo(sesion)
     hoy = reloj.ahora().date()
@@ -39,9 +42,9 @@ def procesar_mensaje(
     borrador = None
     fuentes = None
     try:
-        interpretacion = proveedor_llm.clasificar_e_interpretar(datos.texto, hoy, catalogo)
-    except ErrorInterpretacion:
-        texto_respuesta = MENSAJE_ERROR_INTERPRETACION
+        interpretacion = proveedor_llm.clasificar_e_interpretar(datos.texto, hoy, catalogo, historial)
+    except ErrorInterpretacion as error:
+        texto_respuesta = MENSAJE_LIMITE_TASA if error.limite_tasa else MENSAJE_ERROR_INTERPRETACION
     else:
         movimiento = interpretacion.movimiento
         es_registro_completo = (
@@ -66,7 +69,6 @@ def procesar_mensaje(
         elif interpretacion.intencion == "REGISTRO":
             texto_respuesta = MENSAJE_FALTA_MONTO
         else:
-            historial = _ultimos_mensajes(sesion, conversacion, CANTIDAD_MENSAJES_HISTORIAL)
             texto_respuesta, fuentes = servicio_asesoramiento.responder_consulta(
                 sesion,
                 usuario,
@@ -79,7 +81,7 @@ def procesar_mensaje(
                 historial,
             )
 
-    mensaje_asistente = _guardar_mensaje(
+    mensaje_asistente = guardar_mensaje(
         sesion, conversacion, RolMensaje.ASISTENTE, texto_respuesta, fuentes
     )
     sesion.commit()
@@ -123,34 +125,6 @@ def resolver_medio_pago(medios_pago: list[MedioPago], nombre: str | None) -> int
     return None
 
 
-def _obtener_o_crear_conversacion(sesion: Session, usuario: Usuario, datos: ChatEntrada) -> Conversacion:
-    if datos.conversacion_id is not None:
-        conversacion = sesion.get(Conversacion, datos.conversacion_id)
-        if conversacion is None or conversacion.usuario_id != usuario.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Conversación no encontrada."
-            )
-        return conversacion
-
-    titulo = datos.texto.strip()[:40] or None
-    conversacion = Conversacion(usuario_id=usuario.id, titulo=titulo)
-    sesion.add(conversacion)
-    sesion.flush()
-    return conversacion
-
-
-def _guardar_mensaje(
-    sesion: Session,
-    conversacion: Conversacion,
-    rol: RolMensaje,
-    contenido: str,
-    fuentes: list[dict] | None = None,
-) -> Mensaje:
-    mensaje = Mensaje(conversacion_id=conversacion.id, rol=rol, contenido=contenido, fuentes=fuentes)
-    sesion.add(mensaje)
-    sesion.flush()
-    sesion.refresh(mensaje)
-    return mensaje
 
 
 def _ultimos_mensajes(sesion: Session, conversacion: Conversacion, limite: int) -> list[Mensaje]:

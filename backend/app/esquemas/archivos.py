@@ -1,7 +1,8 @@
 from datetime import date
 from decimal import Decimal
+from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.esquemas.movimientos import BorradorMovimientoSalida
 from app.modelos.enums import TipoComprobante, TipoMovimiento
@@ -39,3 +40,27 @@ class ExtractoRespuesta(BaseModel):
     items: list[ItemResumenSalida]
     archivo_ref: str
     filas_descartadas: int
+
+
+class ComprobanteAdjuntoRespuesta(ComprobanteRespuesta):
+    modo: Literal["COMPROBANTE"] = "COMPROBANTE"
+    conversacion_id: int
+    mensaje_id: int
+
+
+class ResumenAdjuntoRespuesta(ResumenRespuesta):
+    modo: Literal["RESUMEN"] = "RESUMEN"
+    conversacion_id: int
+    mensaje_id: int
+
+
+class ExtractoAdjuntoRespuesta(ExtractoRespuesta):
+    modo: Literal["EXTRACTO"] = "EXTRACTO"
+    conversacion_id: int
+    mensaje_id: int
+
+
+AdjuntoRespuesta = Annotated[
+    Union[ComprobanteAdjuntoRespuesta, ResumenAdjuntoRespuesta, ExtractoAdjuntoRespuesta],
+    Field(discriminator="modo"),
+]

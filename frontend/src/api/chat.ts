@@ -26,9 +26,11 @@ export interface Mensaje {
   rol: 'USUARIO' | 'ASISTENTE'
   contenido: string
   fuentes: Fuente[] | null
-  creado_en: string
-  /** Solo local: no lo persiste el backend (POST /voz/transcribir no registra nada). */
   transcripto?: boolean
+  creado_en: string
+  /** Presente cuando el movimiento que propuso este mensaje ya se guardó (para reconstruir el
+   * historial al navegar a una conversación vieja). */
+  movimiento?: Borrador | null
 }
 
 export interface Borrador {
@@ -55,10 +57,14 @@ export function obtenerConversacion(id: number): Promise<Mensaje[]> {
   return solicitar<Mensaje[]>(`/chat/conversaciones/${id}`)
 }
 
-export function enviarMensaje(texto: string, conversacionId: number | null): Promise<ChatRespuesta> {
+export function enviarMensaje(
+  texto: string,
+  conversacionId: number | null,
+  transcripto = false,
+): Promise<ChatRespuesta> {
   return solicitar<ChatRespuesta>('/chat/mensajes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ texto, conversacion_id: conversacionId }),
+    body: JSON.stringify({ texto, conversacion_id: conversacionId, transcripto }),
   })
 }

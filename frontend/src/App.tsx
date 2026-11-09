@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { alVencerSesion } from './api/cliente'
-import Layout from './componentes/Layout'
+import AdminDocumentos from './paginas/AdminDocumentos'
+import AdminUsuarios from './paginas/AdminUsuarios'
 import Chat from './paginas/Chat'
 import Dashboard from './paginas/Dashboard'
 import Historial from './paginas/Historial'
@@ -26,38 +27,13 @@ function App() {
       <Routes>
         <Route path="/registro" element={<Registro />} />
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <Layout>
-              <Chat />
-            </Layout>
-          }
-        />
-        <Route
-          path="/historial"
-          element={
-            <Layout>
-              <Historial />
-            </Layout>
-          }
-        />
-        <Route
-          path="/resumen"
-          element={
-            <Layout>
-              <RevisionResumen />
-            </Layout>
-          }
-        />
+        <Route path="/" element={<Chat />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/historial" element={<Historial />} />
+        <Route path="/resumen" element={<RevisionResumen />} />
+        <Route path="/admin/documentos" element={<AdminDocumentos />} />
+        <Route path="/admin/usuarios" element={<AdminUsuarios />} />
       </Routes>
     </BrowserRouter>
   )
